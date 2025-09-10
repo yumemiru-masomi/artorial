@@ -1,0 +1,346 @@
+"use client";
+
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, RefreshCw, Trophy } from "lucide-react";
+import StepGuide from "@/components/StepGuide";
+import { useTutorial } from "@/hooks/useTutorial";
+import {
+  StepGenerationResponse,
+  ImageAnalysisResponse,
+} from "@/types/analysis";
+import { Material } from "@/types/tutorial";
+import { ApiResponse } from "@/types/api";
+import { ImageGenerationResponse } from "@/types/image-generation";
+
+function TutorialPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [stepsData, setStepsData] = useState<StepGenerationResponse | null>(
+    null
+  );
+  const [generatedImages, setGeneratedImages] = useState<
+    ImageGenerationResponse["images"] | null
+  >(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
+
+  const imageUrl = searchParams.get("image");
+  const material = searchParams.get("material") as Material;
+  const analysisResultStr = searchParams.get("analysis");
+
+  const {
+    currentStep,
+    goToNextStep,
+    goToPreviousStep,
+    isFirstStep,
+    isLastStep,
+    progress,
+  } = useTutorial(stepsData?.steps.length || 0);
+
+  useEffect(() => {
+    if (!imageUrl || !material || !analysisResultStr) {
+      router.push("/");
+      return;
+    }
+
+    generateSteps();
+  }, [imageUrl, material, analysisResultStr]);
+
+  const generateSteps = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const analysisResult: ImageAnalysisResponse = JSON.parse(
+        analysisResultStr || "{}"
+      );
+
+      const response = await fetch("/api/generate-steps", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl,
+          material,
+          analysisResult,
+        }),
+      });
+
+      const data: ApiResponse<StepGenerationResponse> = await response.json();
+
+      if (data.success && data.data) {
+        setStepsData(data.data);
+        // 手順生成後に画像生成を開始
+        generateImages();
+      } else {
+        setError(data.error?.message || "手順の生成に失敗しました。");
+      }
+    } catch (err) {
+      setError("ネットワークエラーが発生しました。");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateImages = async () => {
+    if (!imageUrl || !material) return;
+
+    setIsGeneratingImages(true);
+    try {
+      const response = await fetch("/api/generate-ai-images", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl,
+          material,
+          textureStrength: 40, // デフォルト値
+        }),
+      });
+
+      const data: ApiResponse<ImageGenerationResponse> = await response.json();
+
+      if (data.success && data.data) {
+        setGeneratedImages(data.data.images);
+      } else {
+        console.warn("画像生成に失敗しました:", data.error?.message);
+        // 画像生成は失敗してもチュートリアルは続行可能
+      }
+    } catch (err) {
+      console.warn("画像生成でネットワークエラーが発生しました:", err);
+      // 画像生成は失敗してもチュートリアルは続行可能
+    } finally {
+      setIsGeneratingImages(false);
+    }
+  };
+
+  const handleRetry = () => {
+    generateSteps();
+  };
+
+  const handleBackToAnalysis = () => {
+    const params = new URLSearchParams({
+      image: imageUrl || "",
+      material: material || "",
+    });
+    router.push(`/analysis?${params.toString()}`);
+  };
+
+  const handleNextStep = () => {
+    if (isLastStep && stepsData) {
+      setIsCompleted(true);
+    } else {
+      goToNextStep();
+    }
+  };
+
+  const handleBackToHome = () => {
+    router.push("/");
+  };
+
+  const materialNames = {
+    pencil: "デッサン",
+    watercolor: "水彩画",
+    "colored-pencil": "色鉛筆",
+    acrylic: "アクリル絵の具",
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-blue-100 rounded-full">
+            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            描画手順を生成中...
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {materialNames[material]}での段階的な手順を作成しています
+          </p>
+          <div className="w-64 bg-gray-200 rounded-full h-2 mx-auto">
+            <div
+              className="bg-blue-600 h-2 rounded-full animate-pulse"
+              style={{ width: "70%" }}
+            ></div>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            通常45秒ほどかかります...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="max-w-md text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-red-100 rounded-full">
+            <svg
+              className="w-8 h-8 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            手順生成に失敗しました
+          </h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="space-x-4">
+            <button
+              onClick={handleRetry}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              再試行
+            </button>
+            <button
+              onClick={handleBackToAnalysis}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              解析結果に戻る
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCompleted && stepsData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="max-w-lg text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-green-100 rounded-full">
+            <Trophy className="w-10 h-10 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            おめでとうございます！
+          </h2>
+          <p className="text-xl text-gray-600 mb-2">
+            {materialNames[material]}の手順が完了しました
+          </p>
+          <p className="text-gray-500 mb-8">
+            推定時間: {stepsData.totalEstimatedTime}分 |{" "}
+            {stepsData.steps.length}ステップ完了
+          </p>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+            <h3 className="text-lg font-semibold text-green-800 mb-2">
+              完了した内容
+            </h3>
+            <div className="text-left space-y-2">
+              {stepsData.steps.map((step, index) => (
+                <div key={index} className="flex items-center text-green-700">
+                  <svg
+                    className="w-4 h-4 mr-2 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  <span className="text-sm">{step.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-x-4">
+            <button
+              onClick={handleBackToHome}
+              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              新しい画像で始める
+            </button>
+            <button
+              onClick={() => setIsCompleted(false)}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              手順を見直す
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stepsData || !stepsData.steps.length) {
+    return null;
+  }
+
+  const currentStepData = stepsData.steps[currentStep - 1];
+
+  return (
+    <div className="min-h-screen py-8">
+      {/* ヘッダー */}
+      <div className="mb-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <button
+                onClick={handleBackToAnalysis}
+                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors mr-4"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                解析結果に戻る
+              </button>
+              <span className="text-gray-400">|</span>
+              <h1 className="text-2xl font-bold text-gray-900 ml-4">
+                {materialNames[material]}の描画手順
+              </h1>
+            </div>
+            <div className="text-sm text-gray-600">
+              推定時間: {stepsData.totalEstimatedTime}分
+              {isGeneratingImages && (
+                <div className="flex items-center text-blue-600 mt-1">
+                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                  参考画像生成中...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ステップガイド */}
+      <StepGuide
+        step={currentStepData}
+        currentStepNumber={currentStep}
+        totalSteps={stepsData.steps.length}
+        onPrevious={goToPreviousStep}
+        onNext={handleNextStep}
+        originalImageUrl={imageUrl || ""}
+        generatedImages={generatedImages || undefined}
+        material={material}
+        isFirstStep={isFirstStep}
+        isLastStep={isLastStep}
+      />
+    </div>
+  );
+}
+
+export default function TutorialPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TutorialPageContent />
+    </Suspense>
+  );
+}

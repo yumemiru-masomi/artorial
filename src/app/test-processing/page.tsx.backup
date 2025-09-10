@@ -1,0 +1,649 @@
+"use client";
+
+import { useState } from "react";
+import { Upload, Download, Loader2, Sparkles, Cpu } from "lucide-react";
+
+interface ProcessingResults {
+  lineArt: string | null;
+  flat: string | null;
+  shaded: string | null;
+}
+
+interface GeminiAnalysisResult {
+  analysis?: string;
+  message?: string;
+  results: ProcessingResults;
+}
+
+type ProcessingMethod = "sharp" | "gemini";
+type ProcessingStep = "lineArt" | "flat" | "shaded";
+
+export default function TestProcessingPage() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [results, setResults] = useState<ProcessingResults | null>(null);
+  const [geminiAnalysis, setGeminiAnalysis] = useState<string | null>(null);
+  const [geminiMessage, setGeminiMessage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [method, setMethod] = useState<ProcessingMethod>("sharp");
+
+  // 段階的生成用の新しい状態
+  const [currentStep, setCurrentStep] = useState<ProcessingStep>("lineArt");
+  const [stepResults, setStepResults] = useState<{
+    [key in ProcessingStep]: string | null;
+  }>({
+    lineArt: null,
+    flat: null,
+    shaded: null,
+  });
+  const [isGeneratingNext, setIsGeneratingNext] = useState(false);
+  const [nextStepReady, setNextStepReady] = useState(false);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setResults(null);
+      setGeminiAnalysis(null);
+      setGeminiMessage(null);
+      setError(null);
+      // 段階的生成の状態もリセット
+      setCurrentStep("lineArt");
+      setStepResults({ lineArt: null, flat: null, shaded: null });
+      setIsGeneratingNext(false);
+      setNextStepReady(false);
+    }
+  };
+
+  // 段階的生成用の新しい関数
+  const generateStepImage = async (step: ProcessingStep) => {
+    if (!selectedFile) return;
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("step", step);
+
+      const response = await fetch("/api/gemini-process-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.results) {
+        // ステップに応じて正しいデータを取得
+        let imageData = null;
+        if (step === "lineArt" && data.results.lineArt) {
+          imageData = data.results.lineArt;
+        } else if (step === "flat" && data.results.flat) {
+          imageData = data.results.flat;
+        } else if (step === "shaded" && data.results.shaded) {
+          imageData = data.results.shaded;
+        }
+
+        if (imageData) {
+          setStepResults((prev) => ({ ...prev, [step]: imageData }));
+        }
+
+        // 次のステップの生成を自動開始
+        const nextStep =
+          step === "lineArt" ? "flat" : step === "flat" ? "shaded" : null;
+        if (nextStep) {
+          setIsGeneratingNext(true);
+          // 次のステップを背景で生成開始
+          generateNextStepInBackground(nextStep);
+        }
+      } else {
+        throw new Error(data.error || "画像生成に失敗しました");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setError(
+        err instanceof Error ? err.message : "処理中にエラーが発生しました"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 背景で次のステップを生成
+  const generateNextStepInBackground = async (step: ProcessingStep) => {
+    if (!selectedFile) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("step", step);
+
+      const response = await fetch("/api/gemini-process-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.results) {
+        // ステップに応じて正しいデータを取得
+        let imageData = null;
+        if (step === "lineArt" && data.results.lineArt) {
+          imageData = data.results.lineArt;
+        } else if (step === "flat" && data.results.flat) {
+          imageData = data.results.flat;
+        } else if (step === "shaded" && data.results.shaded) {
+          imageData = data.results.shaded;
+        }
+
+        if (imageData) {
+          setStepResults((prev) => ({ ...prev, [step]: imageData }));
+          setNextStepReady(true);
+        }
+      }
+    } catch (err) {
+      console.error("Background generation error:", err);
+    } finally {
+      setIsGeneratingNext(false);
+    }
+  };
+
+  // 次へボタンの処理
+  const handleNextStep = () => {
+    const nextStep =
+      currentStep === "lineArt"
+        ? "flat"
+        : currentStep === "flat"
+        ? "shaded"
+        : null;
+    if (nextStep) {
+      setCurrentStep(nextStep);
+      setNextStepReady(false);
+    }
+  };
+
+  const processImage = async () => {
+    if (!selectedFile) return;
+
+    if (method === "gemini") {
+      // Geminiの場合は線画のみ生成
+      setIsProcessing(true);
+      setError(null);
+      
+      try {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        const response = await fetch("/api/gemini-process-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.results && data.results.lineArt) {
+          setResults({
+            lineArt: data.results.lineArt,
+            flat: null,
+            shaded: null,
+          });
+        }
+      } catch (err) {
+        console.error("Error:", err);
+        setError(
+          err instanceof Error ? err.message : "処理中にエラーが発生しました"
+        );
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch("/api/process-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "処理に失敗しました");
+      }
+
+      // Gemini分析結果がある場合は表示（後方互換性のため）
+      if (method === "gemini" && data.analysis) {
+        setGeminiAnalysis(data.analysis);
+        setGeminiMessage(data.message);
+      } else {
+        // 画像生成の場合は分析結果をクリア
+        setGeminiAnalysis(null);
+        setGeminiMessage(null);
+      }
+
+      setResults(data.results);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "不明なエラーが発生しました"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const downloadImage = (dataUrl: string | null, filename: string) => {
+    if (!dataUrl) return;
+
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            画像処理テスト
+          </h1>
+          <p className="text-gray-600">
+            線画・ベタ塗り・陰影付きの3段階画像処理をテストします
+          </p>
+        </div>
+
+        {/* 処理方法選択 */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-4">処理方法を選択</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => setMethod("sharp")}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                method === "sharp"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center justify-center mb-2">
+                <Cpu className="h-8 w-8 text-blue-600" />
+              </div>
+              <h4 className="font-semibold text-gray-900">Sharp処理</h4>
+              <p className="text-sm text-gray-600 mt-1">
+                従来の画像処理技術（エッジ検出・減色・合成）
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                高速・安定・オフライン対応
+              </p>
+            </button>
+
+            <button
+              onClick={() => setMethod("gemini")}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                method === "gemini"
+                  ? "border-purple-500 bg-purple-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center justify-center mb-2">
+                <Sparkles className="h-8 w-8 text-purple-600" />
+              </div>
+              <h4 className="font-semibold text-gray-900">Gemini Vision</h4>
+              <p className="text-sm text-gray-600 mt-1">
+                AI画像生成（Gemini 2.5 Flash Image Preview）
+              </p>
+              <p className="text-xs text-purple-600 mt-2">
+                高品質・AI画像生成・3スタイル対応
+              </p>
+            </button>
+          </div>
+        </div>
+
+        {/* ファイルアップロード */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <div className="mb-4">
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <span className="text-blue-600 hover:text-blue-500 font-medium">
+                  ファイルを選択
+                </span>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            {selectedFile && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">
+                  選択されたファイル: {selectedFile.name}
+                </p>
+                <p className="text-xs text-gray-500">
+                  サイズ: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+            )}
+            <button
+              onClick={processImage}
+              disabled={!selectedFile || isProcessing}
+              className={`px-6 py-2 rounded-md font-medium flex items-center mx-auto transition-colors ${
+                method === "sharp"
+                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "bg-purple-600 hover:bg-purple-700 text-white"
+              } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  {method === "gemini" ? "AI処理中..." : "画像処理中..."}
+                </>
+              ) : (
+                <>
+                  {method === "gemini" ? (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Cpu className="h-4 w-4 mr-2" />
+                  )}
+                  {method === "gemini" ? "AIで画像生成" : "画像を処理"}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* エラー表示 */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Gemini分析結果 */}
+        {geminiAnalysis && (
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold text-purple-900 mb-4">
+              Gemini画像分析結果
+            </h2>
+            {geminiMessage && (
+              <div className="bg-purple-100 rounded-md p-3 mb-4">
+                <p className="text-purple-800 text-sm">{geminiMessage}</p>
+              </div>
+            )}
+            <div className="prose prose-purple max-w-none">
+              <pre className="whitespace-pre-wrap text-sm text-purple-800 bg-white p-4 rounded border">
+                {geminiAnalysis}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* 結果表示 */}
+        {results && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-6">
+              {method === "gemini" ? "AI画像生成結果" : "画像処理結果"}
+            </h2>
+
+            {/* 現在のステップ表示 */}
+            <div className="flex justify-center mb-8">
+              <div className="flex items-center space-x-4">
+                <div
+                  className={`flex items-center space-x-2 ${
+                    currentStep === "lineArt"
+                      ? "text-purple-600 font-semibold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      currentStep === "lineArt"
+                        ? "bg-purple-600"
+                        : "bg-gray-300"
+                    }`}
+                  ></div>
+                  <span>線画</span>
+                </div>
+                <div className="w-8 h-0.5 bg-gray-300"></div>
+                <div
+                  className={`flex items-center space-x-2 ${
+                    currentStep === "flat"
+                      ? "text-purple-600 font-semibold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      currentStep === "flat" ? "bg-purple-600" : "bg-gray-300"
+                    }`}
+                  ></div>
+                  <span>ベタ塗り</span>
+                </div>
+                <div className="w-8 h-0.5 bg-gray-300"></div>
+                <div
+                  className={`flex items-center space-x-2 ${
+                    currentStep === "shaded"
+                      ? "text-purple-600 font-semibold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      currentStep === "shaded" ? "bg-purple-600" : "bg-gray-300"
+                    }`}
+                  ></div>
+                  <span>陰影付き</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 現在の画像表示 */}
+            <div className="flex justify-center mb-6">
+              <div className="max-w-md">
+                <div className="border rounded-lg overflow-hidden min-h-[300px] flex items-center justify-center bg-gray-50">
+                  {stepResults[currentStep] ? (
+                    <img
+                      src={stepResults[currentStep]!}
+                      alt={
+                        currentStep === "lineArt"
+                          ? "線画"
+                          : currentStep === "flat"
+                          ? "ベタ塗り"
+                          : "陰影付き"
+                      }
+                      className="w-full h-auto"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <Loader2 className="animate-spin h-8 w-8 mx-auto mb-2 text-purple-600" />
+                      <p className="text-gray-500">生成中...</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ダウンロードボタン */}
+                {stepResults[currentStep] && (
+                  <button
+                    onClick={() =>
+                      downloadImage(
+                        stepResults[currentStep],
+                        `${currentStep}.png`
+                      )
+                    }
+                    className="w-full mt-4 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium flex items-center justify-center"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    ダウンロード
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 次へボタンと生成状況 */}
+            <div className="flex flex-col items-center space-y-4">
+              {isGeneratingNext && (
+                <div className="flex items-center space-x-2 text-purple-600">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  <span className="text-sm">次のステップを生成中...</span>
+                </div>
+              )}
+
+              {currentStep !== "shaded" && (
+                <button
+                  onClick={handleNextStep}
+                  disabled={!nextStepReady}
+                  className={`px-8 py-3 rounded-md font-medium flex items-center transition-colors ${
+                    nextStepReady
+                      ? "bg-purple-600 hover:bg-purple-700 text-white"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  次へ（{currentStep === "lineArt" ? "ベタ塗り" : "陰影付き"}）
+                  {nextStepReady && <span className="ml-2">→</span>}
+                </button>
+              )}
+
+              {currentStep === "shaded" && (
+                <div className="text-center">
+                  <p className="text-green-600 font-medium">
+                    🎉 全ての生成が完了しました！
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 結果表示（Sharp処理用） */}
+        {method === "sharp" && results && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-6">
+              処理結果 ({method === "gemini" ? "Gemini Vision" : "Sharp処理"})
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* 線画 */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-center">線画</h3>
+                <div className="border rounded-lg overflow-hidden min-h-[200px] flex items-center justify-center bg-gray-50">
+                  {results.lineArt ? (
+                    <img
+                      src={results.lineArt}
+                      alt="線画"
+                      className="w-full h-auto"
+                    />
+                  ) : (
+                    <p className="text-gray-500">生成されませんでした</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => downloadImage(results.lineArt, "lineArt.png")}
+                  disabled={!results.lineArt}
+                  className="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  ダウンロード
+                </button>
+              </div>
+
+              {/* ベタ塗り */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-center">ベタ塗り</h3>
+                <div className="border rounded-lg overflow-hidden min-h-[200px] flex items-center justify-center bg-gray-50">
+                  {results.flat ? (
+                    <img
+                      src={results.flat}
+                      alt="ベタ塗り"
+                      className="w-full h-auto"
+                    />
+                  ) : (
+                    <p className="text-gray-500">生成されませんでした</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => downloadImage(results.flat, "flat.png")}
+                  disabled={!results.flat}
+                  className="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  ダウンロード
+                </button>
+              </div>
+
+              {/* 陰影付き */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-center">陰影付き</h3>
+                <div className="border rounded-lg overflow-hidden min-h-[200px] flex items-center justify-center bg-gray-50">
+                  {results.shaded ? (
+                    <img
+                      src={results.shaded}
+                      alt="陰影付き"
+                      className="w-full h-auto"
+                    />
+                  ) : (
+                    <p className="text-gray-500">生成されませんでした</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => downloadImage(results.shaded, "shaded.png")}
+                  disabled={!results.shaded}
+                  className="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  ダウンロード
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 使い方説明 */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
+          <h3 className="text-lg font-semibold text-blue-900 mb-3">使い方</h3>
+          <ul className="text-blue-800 space-y-2">
+            <li>• 処理方法を選択してください（Sharp処理 or Gemini Vision）</li>
+            <li>• 画像ファイル（JPG, PNG等）を選択してください</li>
+            <li>• 処理ボタンをクリックすると、3段階の処理が実行されます</li>
+            <li>
+              • <strong>Sharp処理</strong>: 従来の画像処理技術で高速・安定
+            </li>
+            <li>
+              • <strong>Gemini Vision</strong>:
+              AI画像生成（線画・ベタ塗り・陰影付き）
+            </li>
+            <li>• 各結果画像は個別にダウンロード可能です</li>
+          </ul>
+        </div>
+
+        {/* 比較用リンク */}
+        <div className="text-center mt-8">
+          <a
+            href="/test-sharp-processing"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            Sharp処理専用ページはこちら
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
