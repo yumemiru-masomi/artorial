@@ -328,10 +328,10 @@ function TutorialPageContent() {
         onPrevious={goToPreviousStep}
         onNext={handleNextStep}
         originalImageUrl={imageUrl || ""}
-        generatedImages={generatedImages || undefined}
         material={material}
         isFirstStep={isFirstStep}
         isLastStep={isLastStep}
+        allSteps={stepsData.steps}
       />
     </div>
   );
@@ -339,7 +339,7 @@ function TutorialPageContent() {
 
 export default function TutorialPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>読み込み中...</div>}>
       <TutorialPageContent />
     </Suspense>
   );

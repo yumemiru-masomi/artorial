@@ -46,10 +46,10 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
         const data = await response.json();
         setMixingRecipe(data.data);
       } else {
-        console.error('Failed to fetch mixing recipe');
+        console.error('調色レシピの取得に失敗しました');
       }
     } catch (error) {
-      console.error('Failed to generate mixing recipe:', error);
+      console.error('調色レシピの生成に失敗しました:', error);
     } finally {
       setIsLoading(false);
     }

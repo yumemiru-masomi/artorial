@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const step = (formData.get("step") as string) || "lineArt";
+    const lineArtFile = formData.get("lineArt") as File | null;
 
     if (!file) {
       return NextResponse.json(
@@ -20,10 +22,43 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString("base64");
 
+    // 線画ファイルがある場合はBase64に変換
+    let lineArtBase64: string | null = null;
+    if (lineArtFile) {
+      const lineArtBytes = await lineArtFile.arrayBuffer();
+      lineArtBase64 = Buffer.from(lineArtBytes).toString("base64");
+    }
+
     console.log("Gemini 2.5 Flash Image Preview処理開始...");
 
     // Gemini APIを直接呼び出す関数
     const generateImage = async (prompt: string) => {
+      // partsを動的に構築
+      const parts: Array<{
+        text?: string;
+        inlineData?: { mimeType: string; data: string };
+      }> = [
+        {
+          text: prompt,
+        },
+        {
+          inlineData: {
+            mimeType: file.type,
+            data: base64,
+          },
+        },
+      ];
+
+      // ベタ塗りの場合で線画データがある場合、線画も追加
+      if (step === "flat" && lineArtBase64) {
+        parts.push({
+          inlineData: {
+            mimeType: "image/png", // 線画はPNGと仮定
+            data: lineArtBase64,
+          },
+        });
+      }
+
       const response = await fetch(GEMINI_API_URL, {
         method: "POST",
         headers: {
@@ -33,17 +68,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           contents: [
             {
-              parts: [
-                {
-                  text: prompt,
-                },
-                {
-                  inlineData: {
-                    mimeType: file.type,
-                    data: base64,
-                  },
-                },
-              ],
+              parts: parts,
             },
           ],
         }),
@@ -72,22 +97,60 @@ export async function POST(req: NextRequest) {
       return null;
     };
 
-    // 線画のみ生成
-    const lineArtPrompt =
-      "Convert this image to a simple black line art drawing on white background";
+    // ステップに応じた画像生成
+    let prompt: string;
+    let stepName: string;
 
-    console.log("線画生成中...");
-    const lineArtImage = await generateImage(lineArtPrompt);
+    switch (step) {
+      case "lineArt":
+        prompt =
+          "Convert this image to a simple black line art drawing on white background";
+        stepName = "線画";
+        break;
+      case "flat":
+        prompt = `目的： 線画の内側を、パステル調の均一な色面で塗り分けた"ベタ塗り段階"の見本画像を作る。影・ハイライト・質感は入れない。
 
-    console.log("Gemini線画生成完了");
+次の2枚を参照して、ベタ塗り段階の画像を1枚生成してください。
+- 画像A：元画像（参考用）
+- 画像B：白背景の黒線の線画（塗る範囲のガイド）
+
+必須要件：
+- 線画（画像B）の**線の内側のみ**を塗る。線は黒のまま残す（1〜2px相当、途切れなし）。
+- 全体を **8〜10色** で **ポスタライズ**。各領域は **ベタの均一塗り**（**グラデーション禁止**）。
+- **影・ハイライト・反射・テクスチャ・ノイズ・ディザ** は**入れない**（完全にフラット）。
+- 背景は **白**（または #FFF）に固定。黒背景や余白の追加禁止。
+- 構図・比率・アウトライン位置は元の線画を厳密に維持。
+- 出力は **PNG 1枚**。
+
+色指定：
+- パステル系のやわらかい配色（鮮やかすぎない）。
+- 同一パーツ内は単一色で均一に塗る（例：キャラの体→1色、背景→1色 など）。
+
+禁止事項（重要）：
+- 影、ハイライト、半透明の塗り、ぼかし、光沢、にじみ、紙目、ブラシストローク、模様、文字、透かし。
+- オブジェクトの追加、構図変更、切り抜き、キャラ差し替え。`;
+        stepName = "ベタ塗り";
+        break;
+      case "shaded":
+        prompt =
+          "Convert this image to a fully shaded anime/manga style illustration with highlights and shadows";
+        stepName = "陰影付き";
+        break;
+      default:
+        prompt =
+          "Convert this image to a simple black line art drawing on white background";
+        stepName = "線画";
+    }
+
+    console.log(`${stepName}生成中...`);
+    const generatedImage = await generateImage(prompt);
+
+    console.log(`Gemini${stepName}生成完了`);
 
     return NextResponse.json({
       success: true,
-      results: {
-        lineArt: lineArtImage,
-        flat: null,
-        shaded: null,
-      },
+      step: step,
+      image: generatedImage,
       method: "gemini-image-generation",
     });
   } catch (error) {

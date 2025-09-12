@@ -172,7 +172,7 @@ Generate a finished painting version of this image.`;
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
-      console.log("🚀 Starting Gemini 2.5 Flash Image Preview generation...");
+      console.log("🚀 Gemini 2.5 Flash Image Previewで画像生成を開始...");
       console.log("- Model:", "gemini-2.5-flash-image-preview");
       console.log("- Prompt length:", prompt.length);
 
@@ -218,7 +218,7 @@ Generate a finished painting version of this image.`;
               part.inlineData &&
               part.inlineData.mimeType?.startsWith("image/")
             ) {
-              console.log("✅ Found generated image data!");
+              console.log("✅ 生成された画像データを発見！");
               return Buffer.from(part.inlineData.data, "base64");
             }
           }
@@ -232,7 +232,7 @@ Generate a finished painting version of this image.`;
       clearTimeout(timeoutId);
 
       if (error instanceof Error && error.name === "AbortError") {
-        console.error("⏰ Gemini API Timeout (30s exceeded)");
+        console.error("⏰ Gemini APIタイムアウト（30秒超過）");
         throw new Error("TIMEOUT");
       }
 
@@ -246,9 +246,24 @@ Generate a finished painting version of this image.`;
       });
 
       // エラー時は元画像を返す
-      console.warn("🔄 Falling back to original image due to error");
+      console.warn("🔄 エラーのため元画像にフォールバック");
       return Buffer.from(base64Image, "base64");
     }
+  }
+
+  /**
+   * Generate step-specific image based on custom prompt
+   */
+  async generateStepImage(
+    imageBuffer: Buffer,
+    prompt: string,
+    previousStepImageUrl?: string
+  ): Promise<Buffer> {
+    const base64Image = imageBuffer.toString("base64");
+
+    // If we have a previous step image, we could potentially use it
+    // For now, we'll use the original image as reference
+    return this.callGeminiAPI(base64Image, prompt);
   }
 }
 

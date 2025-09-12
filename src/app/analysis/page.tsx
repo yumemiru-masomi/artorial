@@ -1,25 +1,33 @@
-'use client';
-
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Clock, Star, Users, ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
-import { ImageAnalysisResponse } from '@/types/analysis';
-import { Material } from '@/types/tutorial';
-import { ApiResponse } from '@/types/api';
+"use client";
+import Image from "next/image";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Clock,
+  Star,
+  Users,
+  ArrowLeft,
+  ArrowRight,
+  RefreshCw,
+} from "lucide-react";
+import { ImageAnalysisResponse } from "@/types/analysis";
+import { Material } from "@/types/tutorial";
+import { ApiResponse } from "@/types/api";
 
 function AnalysisPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [analysisResult, setAnalysisResult] = useState<ImageAnalysisResponse | null>(null);
+  const [analysisResult, setAnalysisResult] =
+    useState<ImageAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const imageUrl = searchParams.get('image');
-  const material = searchParams.get('material') as Material;
+  const imageUrl = searchParams.get("image");
+  const material = searchParams.get("material") as Material;
 
   useEffect(() => {
     if (!imageUrl || !material) {
-      router.push('/');
+      router.push("/");
       return;
     }
 
@@ -31,10 +39,10 @@ function AnalysisPageContent() {
     setError(null);
 
     try {
-      const response = await fetch('/api/analysis', {
-        method: 'POST',
+      const response = await fetch("/api/analysis", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           imageUrl,
@@ -47,10 +55,10 @@ function AnalysisPageContent() {
       if (data.success && data.data) {
         setAnalysisResult(data.data);
       } else {
-        setError(data.error?.message || '解析に失敗しました。');
+        setError(data.error?.message || "解析に失敗しました。");
       }
     } catch (err) {
-      setError('ネットワークエラーが発生しました。');
+      setError("ネットワークエラーが発生しました。");
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +69,7 @@ function AnalysisPageContent() {
   };
 
   const handleBackToHome = () => {
-    router.push('/');
+    router.push("/");
   };
 
   const handleProceedToTutorial = () => {
@@ -77,27 +85,29 @@ function AnalysisPageContent() {
 
   const getDifficultyLabel = (difficulty: string) => {
     const labels = {
-      beginner: '初級',
-      intermediate: '中級', 
-      advanced: '上級',
+      beginner: "初級",
+      intermediate: "中級",
+      advanced: "上級",
     };
     return labels[difficulty as keyof typeof labels] || difficulty;
   };
 
   const getDifficultyColor = (difficulty: string) => {
     const colors = {
-      beginner: 'text-green-600 bg-green-100',
-      intermediate: 'text-yellow-600 bg-yellow-100',
-      advanced: 'text-red-600 bg-red-100',
+      beginner: "text-green-600 bg-green-100",
+      intermediate: "text-yellow-600 bg-yellow-100",
+      advanced: "text-red-600 bg-red-100",
     };
-    return colors[difficulty as keyof typeof colors] || 'text-gray-600 bg-gray-100';
+    return (
+      colors[difficulty as keyof typeof colors] || "text-gray-600 bg-gray-100"
+    );
   };
 
   const materialNames = {
-    pencil: 'デッサン',
-    watercolor: '水彩画',
-    'colored-pencil': '色鉛筆',
-    acrylic: 'アクリル絵の具',
+    pencil: "デッサン",
+    watercolor: "水彩画",
+    "colored-pencil": "色鉛筆",
+    acrylic: "アクリル絵の具",
   };
 
   if (isLoading) {
@@ -114,7 +124,10 @@ function AnalysisPageContent() {
             画像の複雑さと難易度を分析しています
           </p>
           <div className="w-64 bg-gray-200 rounded-full h-2 mx-auto">
-            <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+            <div
+              className="bg-blue-600 h-2 rounded-full animate-pulse"
+              style={{ width: "60%" }}
+            ></div>
           </div>
           <p className="text-sm text-gray-500 mt-2">
             通常30秒ほどかかります...
@@ -129,16 +142,24 @@ function AnalysisPageContent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="max-w-md text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-red-100 rounded-full">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            <svg
+              className="w-8 h-8 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
             </svg>
           </div>
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">
             解析に失敗しました
           </h2>
-          <p className="text-gray-600 mb-6">
-            {error}
-          </p>
+          <p className="text-gray-600 mb-6">{error}</p>
           <div className="space-x-4">
             <button
               onClick={handleRetry}
@@ -167,11 +188,10 @@ function AnalysisPageContent() {
       <div className="max-w-4xl mx-auto px-4">
         {/* ヘッダー */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            解析結果
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">解析結果</h1>
           <p className="text-gray-600">
-            AI が画像を解析し、{materialNames[material]}での描画難易度を判定しました
+            AI が画像を解析し、{materialNames[material]}
+            での描画難易度を判定しました
           </p>
         </div>
 
@@ -182,9 +202,11 @@ function AnalysisPageContent() {
               選択された画像
             </h2>
             <div className="relative w-full max-w-md mx-auto">
-              <img
-                src={imageUrl || ''}
+              <Image
+                src={imageUrl || ""}
                 alt="解析対象の画像"
+                width={400}
+                height={300}
                 className="w-full rounded-lg shadow-md"
               />
             </div>
@@ -205,7 +227,11 @@ function AnalysisPageContent() {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-gray-700">難易度</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(analysisResult.difficulty)}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(
+                    analysisResult.difficulty
+                  )}`}
+                >
                   {getDifficultyLabel(analysisResult.difficulty)}
                 </span>
               </div>
@@ -223,7 +249,9 @@ function AnalysisPageContent() {
                     <Star
                       key={i}
                       className={`w-4 h-4 ${
-                        i < analysisResult.complexity ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                        i < analysisResult.complexity
+                          ? "text-yellow-400 fill-current"
+                          : "text-gray-300"
                       }`}
                     />
                   ))}
@@ -304,7 +332,7 @@ function AnalysisPageContent() {
 
 export default function AnalysisPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>読み込み中...</div>}>
       <AnalysisPageContent />
     </Suspense>
   );
