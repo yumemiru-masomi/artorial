@@ -47,10 +47,7 @@ export default function StepGuide({
   const [loading, setLoading] = useState(false);
   const [nextStepReady, setNextStepReady] = useState(false);
   const [showColorPalette, setShowColorPalette] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState<{
-    [key: number]: "pending" | "generating" | "completed" | "error";
-  }>({});
-  const [totalStepsToGenerate, setTotalStepsToGenerate] = useState(0);
+  // 画像生成進捗表示を削除
 
   // ステップ画像を生成する関数
   async function generateStepImage(stepIndex: number): Promise<string | null> {
@@ -58,11 +55,7 @@ export default function StepGuide({
       const targetStep = allSteps[stepIndex];
       if (!targetStep) return null;
 
-      // 生成状態を更新
-      setGenerationProgress((prev) => ({
-        ...prev,
-        [stepIndex]: "generating",
-      }));
+      // 生成状態をコンソールログのみに
 
       const response = await fetch("/api/generate-step-image", {
         method: "POST",
@@ -84,22 +77,14 @@ export default function StepGuide({
 
       const data = await response.json();
       if (data.success) {
-        // 生成完了状態を更新
-        setGenerationProgress((prev) => ({
-          ...prev,
-          [stepIndex]: "completed",
-        }));
+        // 生成完了をコンソールログのみに
         return data.data.imageUrl;
       } else {
         throw new Error(data.error?.message || "Failed to generate image");
       }
     } catch (error) {
       console.error(`Error generating step ${stepIndex + 1} image:`, error);
-      // エラー状態を更新
-      setGenerationProgress((prev) => ({
-        ...prev,
-        [stepIndex]: "error",
-      }));
+      // エラー状態をコンソールログのみに
       return null;
     }
   }
@@ -107,23 +92,15 @@ export default function StepGuide({
   // 全ステップの画像を順次生成する関数
   async function generateAllStepImages() {
     console.log(`🚀 全${allSteps.length}ステップの画像生成を開始`);
-    setTotalStepsToGenerate(allSteps.length);
-
-    // 初期状態を設定
-    const initialProgress: {
-      [key: number]: "pending" | "generating" | "completed" | "error";
-    } = {};
-    allSteps.forEach((_, index) => {
-      initialProgress[index] = "pending";
-    });
-    setGenerationProgress(initialProgress);
 
     // 現在のステップから開始して、順次生成
     const currentIndex = currentStepNumber - 1;
 
     try {
-      // 1. まず現在のステップの画像を生成
+      // 1. まず現在のステップの画像を生成（優先処理）
       setLoading(true);
+      console.log(`📸 ステップ${currentIndex + 1}の画像を優先生成中...`);
+
       const currentImageUrl = await generateStepImage(currentIndex);
       if (currentImageUrl) {
         setStepImages((prev) => {
@@ -131,15 +108,27 @@ export default function StepGuide({
           newArray[currentIndex] = currentImageUrl;
           return newArray;
         });
-      }
-      setLoading(false);
+        console.log(
+          `✅ ステップ${currentIndex + 1}の画像生成完了 - ローディング解除`
+        );
 
-      // 2. 残りの全ステップを並列で生成（現在のステップ以外）
+        // 🎯 重要: 1枚目が完成した時点でローディング解除
+        setLoading(false);
+      } else {
+        console.warn(`⚠️ ステップ${currentIndex + 1}の画像生成に失敗`);
+        setLoading(false);
+      }
+
+      // 2. 残りの全ステップを並列で生成（バックグラウンド処理）
       const remainingSteps = allSteps
         .map((_, index) => index)
         .filter((index) => index !== currentIndex);
 
-      // 並列生成のPromise配列を作成
+      console.log(
+        `🔄 残り${remainingSteps.length}ステップをバックグラウンドで生成開始`
+      );
+
+      // 並列生成のPromise配列を作成（非同期でバックグラウンド実行）
       const generationPromises = remainingSteps.map(async (stepIndex) => {
         const imageUrl = await generateStepImage(stepIndex);
         if (imageUrl) {
@@ -152,26 +141,25 @@ export default function StepGuide({
         return { stepIndex, imageUrl };
       });
 
-      // 全ての生成を並列実行
-      const results = await Promise.allSettled(generationPromises);
+      // バックグラウンドで全ての生成を並列実行（awaitしない）
+      Promise.allSettled(generationPromises).then((results) => {
+        // 結果をログ出力
+        results.forEach((result, index) => {
+          const stepIndex = remainingSteps[index];
+          if (result.status === "fulfilled") {
+            console.log(`✅ ステップ${stepIndex + 1}の画像生成完了`);
+          } else {
+            console.error(
+              `❌ ステップ${stepIndex + 1}の画像生成失敗:`,
+              result.reason
+            );
+          }
+        });
 
-      // 結果をログ出力
-      results.forEach((result, index) => {
-        const stepIndex = remainingSteps[index];
-        if (result.status === "fulfilled") {
-          console.log(`✅ ステップ${stepIndex + 1}の画像生成完了`);
-        } else {
-          console.error(
-            `❌ ステップ${stepIndex + 1}の画像生成失敗:`,
-            result.reason
-          );
-        }
+        console.log(`🎉 全ステップの画像生成処理完了`);
       });
-
-      console.log(`🎉 全ステップの画像生成処理完了`);
-      setNextStepReady(true);
     } catch (error) {
-      console.error("❌ 全ステップ画像生成中にエラー:", error);
+      console.error("❌ 現在ステップの画像生成中にエラー:", error);
       setLoading(false);
     }
   }
@@ -192,16 +180,21 @@ export default function StepGuide({
 
   // 生成進捗を監視して次へボタンの状態を更新
   useEffect(() => {
-    const completedSteps = Object.values(generationProgress).filter(
-      (status) => status === "completed"
-    ).length;
-    const totalSteps = Object.keys(generationProgress).length;
+    const currentIndex = currentStepNumber - 1;
 
-    if (totalSteps > 0 && completedSteps >= Math.min(2, totalSteps)) {
-      // 最低2ステップ（現在+次）または全ステップが完了したら次へボタンを活性化
+    // 現在のステップの画像があるかチェック
+    const currentStepReady =
+      stepImages[currentIndex] !== null &&
+      stepImages[currentIndex] !== undefined;
+
+    // 現在のステップの画像があれば次へボタンを活性化
+    // 最後のステップでは常に活性化（完了ボタン）
+    if (currentStepReady || isLastStep) {
       setNextStepReady(true);
+    } else {
+      setNextStepReady(false);
     }
-  }, [generationProgress]);
+  }, [stepImages, currentStepNumber, isLastStep]);
 
   // 次へボタンのハンドラ
   const handleNext = () => {
@@ -215,17 +208,7 @@ export default function StepGuide({
     return stepImages[currentIndex] || originalImageUrl;
   };
 
-  // 生成進捗の統計を取得
-  const getGenerationStats = () => {
-    const statuses = Object.values(generationProgress);
-    return {
-      total: statuses.length,
-      completed: statuses.filter((s) => s === "completed").length,
-      generating: statuses.filter((s) => s === "generating").length,
-      pending: statuses.filter((s) => s === "pending").length,
-      error: statuses.filter((s) => s === "error").length,
-    };
-  };
+  // 生成進捗表示を削除
 
   return (
     <div className="max-w-6xl mx-auto px-4">
@@ -246,54 +229,7 @@ export default function StepGuide({
           ></div>
         </div>
 
-        {/* 画像生成進捗 */}
-        {totalStepsToGenerate > 0 && (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                🎨 画像生成進捗
-              </span>
-              <span className="text-sm text-gray-500">
-                {getGenerationStats().completed} / {getGenerationStats().total}{" "}
-                完了
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-              <div
-                className="bg-green-500 h-1.5 rounded-full transition-all duration-500"
-                style={{
-                  width: `${
-                    getGenerationStats().total > 0
-                      ? (getGenerationStats().completed /
-                          getGenerationStats().total) *
-                        100
-                      : 0
-                  }%`,
-                }}
-              ></div>
-            </div>
-            <div className="flex items-center space-x-4 text-xs text-gray-600">
-              {getGenerationStats().generating > 0 && (
-                <div className="flex items-center">
-                  <Loader2 className="animate-spin w-3 h-3 mr-1 text-blue-500" />
-                  <span>生成中: {getGenerationStats().generating}</span>
-                </div>
-              )}
-              {getGenerationStats().completed > 0 && (
-                <div className="flex items-center">
-                  <CheckCircle className="w-3 h-3 mr-1 text-green-500" />
-                  <span>完了: {getGenerationStats().completed}</span>
-                </div>
-              )}
-              {getGenerationStats().error > 0 && (
-                <div className="flex items-center">
-                  <span className="w-3 h-3 mr-1 bg-red-500 rounded-full"></span>
-                  <span>エラー: {getGenerationStats().error}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* 画像生成進捗表示を削除 */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -440,9 +376,9 @@ export default function StepGuide({
 
         <button
           onClick={handleNext}
-          disabled={isLastStep || !nextStepReady}
+          disabled={!nextStepReady}
           className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-            isLastStep || !nextStepReady
+            !nextStepReady
               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
               : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:scale-105"
           }`}
@@ -452,11 +388,7 @@ export default function StepGuide({
           ) : !nextStepReady ? (
             <>
               <Loader2 className="animate-spin w-4 h-4 mr-2" />
-              {getGenerationStats().total > 0
-                ? `画像生成中... (${getGenerationStats().completed}/${
-                    getGenerationStats().total
-                  })`
-                : "画像生成中..."}
+              画像生成中...
             </>
           ) : (
             <>

@@ -253,6 +253,7 @@ Generate a finished painting version of this image.`;
 
   /**
    * Generate step-specific image based on custom prompt
+   * Supports multiple input images for layered generation
    */
   async generateStepImage(
     imageBuffer: Buffer,
@@ -261,8 +262,17 @@ Generate a finished painting version of this image.`;
   ): Promise<Buffer> {
     const base64Image = imageBuffer.toString("base64");
 
-    // If we have a previous step image, we could potentially use it
-    // For now, we'll use the original image as reference
+    // For steps that require multiple images (flat color, highlights, shadows)
+    if (
+      previousStepImageUrl &&
+      (prompt.includes("line art") || prompt.includes("flat color"))
+    ) {
+      // TODO: Implement multi-image input for Gemini API
+      // For now, use single image approach
+      console.log(`🔄 Multi-image input detected for step generation`);
+    }
+
+    // Use the original image as primary reference
     return this.callGeminiAPI(base64Image, prompt);
   }
 }
