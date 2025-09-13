@@ -22,14 +22,18 @@ export class GeminiService {
       const imageData = await this.getImageAsBase64(imageUrl);
 
       const materialNames = {
-        pencil: "デッサン（鉛筆）",
-        watercolor: "水彩画",
-        "colored-pencil": "色鉛筆",
+        // TODO: 今後追加予定の画材
+        // pencil: "デッサン（鉛筆）",
+        // watercolor: "水彩画",
+        // "colored-pencil": "色鉛筆",
         acrylic: "アクリル絵の具",
       };
 
       const prompt = `
-この画像を${materialNames[material]}で描く場合の分析を行ってください。
+この画像を${
+        materialNames[material as keyof typeof materialNames] ||
+        materialNames.acrylic
+      }で描く場合の分析を行ってください。
 
 以下の形式でJSONレスポンスを返してください：
 {
@@ -46,7 +50,9 @@ export class GeminiService {
 - intermediate: 中程度の複雑さ、複数の要素、適度な陰影
 - advanced: 複雑な構造、微細なディテール、複雑な陰影や色彩
 
-${materialNames[material]}での描画を想定して分析してください。
+${
+  materialNames[material as keyof typeof materialNames] || materialNames.acrylic
+}での描画を想定して分析してください。
       `;
 
       const result = await this.model.generateContent([
@@ -84,32 +90,33 @@ ${materialNames[material]}での描画を想定して分析してください。
       const imageData = await this.getImageAsBase64(imageUrl);
 
       const materialPrompts = {
-        pencil: {
-          name: "デッサン（鉛筆）",
-          steps: ["下書き", "輪郭線", "基本陰影", "詳細陰影", "仕上げ"],
-          techniques: ["線の強弱", "陰影表現", "立体感", "質感表現"],
-        },
-        watercolor: {
-          name: "水彩画",
-          steps: [
-            "下書き",
-            "薄塗り（第一層）",
-            "中間色（第二層）",
-            "濃い色（第三層）",
-            "仕上げ",
-          ],
-          techniques: [
-            "水分コントロール",
-            "グラデーション",
-            "色の重ね",
-            "乾燥タイミング",
-          ],
-        },
-        "colored-pencil": {
-          name: "色鉛筆",
-          steps: ["下書き", "基本色塗り", "色の重ね", "細部描写", "仕上げ"],
-          techniques: ["重ね塗り", "色の混合", "圧力調整", "質感表現"],
-        },
+        // TODO: 今後追加予定の画材
+        // pencil: {
+        //   name: "デッサン（鉛筆）",
+        //   steps: ["下書き", "輪郭線", "基本陰影", "詳細陰影", "仕上げ"],
+        //   techniques: ["線の強弱", "陰影表現", "立体感", "質感表現"],
+        // },
+        // watercolor: {
+        //   name: "水彩画",
+        //   steps: [
+        //     "下書き",
+        //     "薄塗り（第一層）",
+        //     "中間色（第二層）",
+        //     "濃い色（第三層）",
+        //     "仕上げ",
+        //   ],
+        //   techniques: [
+        //     "水分コントロール",
+        //     "グラデーション",
+        //     "色の重ね",
+        //     "乾燥タイミング",
+        //   ],
+        // },
+        // "colored-pencil": {
+        //   name: "色鉛筆",
+        //   steps: ["下書き", "基本色塗り", "色の重ね", "細部描写", "仕上げ"],
+        //   techniques: ["重ね塗り", "色の混合", "圧力調整", "質感表現"],
+        // },
         acrylic: {
           name: "アクリル絵の具",
           steps: [
@@ -123,7 +130,9 @@ ${materialNames[material]}での描画を想定して分析してください。
         },
       };
 
-      const materialInfo = materialPrompts[material];
+      const materialInfo =
+        materialPrompts[material as keyof typeof materialPrompts] ||
+        materialPrompts.acrylic;
 
       const prompt = `
 この画像を${materialInfo.name}で描くための段階的な手順を生成してください。
@@ -134,7 +143,9 @@ ${materialNames[material]}での描画を想定して分析してください。
 - 被写体: ${analysisResult.subjects.join(", ")}
 
 ${materialInfo.name}の特徴的な手順：
-${materialInfo.steps.map((step, i) => `${i + 1}. ${step}`).join("\n")}
+${materialInfo.steps
+  .map((step: string, i: number) => `${i + 1}. ${step}`)
+  .join("\n")}
 
 主要技法：
 ${materialInfo.techniques.join(", ")}
@@ -154,11 +165,14 @@ ${materialInfo.techniques.join(", ")}
   "totalEstimatedTime": 全体の推定時間（分）
 }
 
-各ステップで以下を含めてください：
-- 具体的な描画手順
-- ${materialInfo.name}特有の技法
-- 初心者にも分かりやすい説明
-- 実用的なコツとアドバイス
+制約条件：
+- 各ステップには必ず「具体的な描画手順」を書くこと
+- ${materialInfo.name}特有の技法（厚塗り・混色・速乾性の活用）を織り込むこと
+- 初心者にもわかりやすい説明で200〜300文字に収めること
+- 各ステップに実用的なコツ（tips）を3つ含めること
+- 色を混ぜる準備などはタイトルに含めず、塗る作業と一緒の説明に書くこと
+- タイトルに色を混ぜる工程は書かないこと
+- 1. 下書き2. 基本色3. 中間色4.陰影5. 仕上げと書いてあるが、陰影などが画像を解析してなかったらステップは飛ばしてもいい
       `;
 
       const result = await this.model.generateContent([

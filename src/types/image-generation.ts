@@ -1,4 +1,4 @@
-import { Material } from './tutorial';
+import { Material } from "./tutorial";
 
 export interface GeneratedImages {
   lineArt: Buffer;
@@ -11,6 +11,7 @@ export interface ImageGenerationRequest {
   imageUrl: string;
   material: Material;
   textureStrength?: number;
+  steps?: unknown[];
 }
 
 export interface ImageGenerationResponse {
@@ -25,7 +26,7 @@ export interface ImageGenerationResponse {
 }
 
 export interface ImageGenerationError {
-  code: 'TIMEOUT' | 'GENERATION_ERROR' | 'NETWORK_ERROR';
+  code: "TIMEOUT" | "GENERATION_ERROR" | "NETWORK_ERROR";
   message: string;
   fallback?: boolean;
 }

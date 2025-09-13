@@ -4,9 +4,7 @@ import {
   HSV, 
   ColorAnalysis, 
   MixingRecipe, 
-  ColorDetail, 
   ColorPalette,
-  ColorPaletteRequest,
   ColorPaletteResponse 
 } from '@/types/color-palette';
 // Sharp import is conditional to avoid client-side bundling issues
@@ -90,7 +88,7 @@ export class ColorPaletteService {
     // 簡易K-meansアルゴリズム
     const clusters = this.simpleKMeans(pixels, k);
     
-    return clusters.map((cluster, index) => ({
+    return clusters.map((cluster) => ({
       rgb: cluster.centroid,
       hsv: this.rgbToHsv(cluster.centroid),
       hex: this.rgbToHex(cluster.centroid),

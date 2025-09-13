@@ -1,9 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Palette, Droplet, Info } from 'lucide-react';
-import { ColorAnalysis, ColorPalette as ColorPaletteType, MixingRecipe } from '@/types/color-palette';
-import { Material } from '@/types/tutorial';
+import { useState } from "react";
+import { Palette, Droplet, Info } from "lucide-react";
+import {
+  ColorAnalysis,
+  ColorPalette as ColorPaletteType,
+  MixingRecipe,
+} from "@/types/color-palette";
+import { Material } from "@/types/tutorial";
 // Import type only to avoid bundling server-side code on client
 // import type { ColorPaletteService } from '@/services/color-palette';
 
@@ -21,35 +25,40 @@ interface ColorDetailsModalProps {
   onClose: () => void;
 }
 
-const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsModalProps) => {
+const ColorDetailsModal = ({
+  color,
+  material,
+  isOpen,
+  onClose,
+}: ColorDetailsModalProps) => {
   const [mixingRecipe, setMixingRecipe] = useState<MixingRecipe | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleShowMixingRecipe = async () => {
     if (mixingRecipe) return;
-    
+
     setIsLoading(true);
     try {
       // Call API endpoint instead of direct service call to avoid client-side import issues
-      const response = await fetch('/api/mixing-recipe', {
-        method: 'POST',
+      const response = await fetch("/api/mixing-recipe", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           color: color,
           material: material,
         }),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setMixingRecipe(data.data);
       } else {
-        console.error('調色レシピの取得に失敗しました');
+        console.error("調色レシピの取得に失敗しました");
       }
     } catch (error) {
-      console.error('調色レシピの生成に失敗しました:', error);
+      console.error("調色レシピの生成に失敗しました:", error);
     } finally {
       setIsLoading(false);
     }
@@ -68,8 +77,18 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -81,8 +100,12 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
               style={{ backgroundColor: color.hex }}
             />
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{color.colorName}</h3>
-              <p className="text-sm text-gray-600">出現頻度: {Math.round(color.frequency * 100)}%</p>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {color.colorName}
+              </h3>
+              <p className="text-sm text-gray-600">
+                出現頻度: {Math.round(color.frequency * 100)}%
+              </p>
             </div>
           </div>
 
@@ -93,11 +116,15 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="bg-gray-50 p-3 rounded">
                   <div className="font-medium text-gray-700">HEX</div>
-                  <div className="text-gray-900 font-mono">{color.hex.toUpperCase()}</div>
+                  <div className="text-gray-900 font-mono">
+                    {color.hex.toUpperCase()}
+                  </div>
                 </div>
                 <div className="bg-gray-50 p-3 rounded">
                   <div className="font-medium text-gray-700">RGB</div>
-                  <div className="text-gray-900">{color.rgb.r}, {color.rgb.g}, {color.rgb.b}</div>
+                  <div className="text-gray-900">
+                    {color.rgb.r}, {color.rgb.g}, {color.rgb.b}
+                  </div>
                 </div>
                 <div className="bg-gray-50 p-3 rounded">
                   <div className="font-medium text-gray-700">色相 (H)</div>
@@ -121,16 +148,18 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
                   disabled={isLoading}
                   className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
                 >
-                  {isLoading ? '生成中...' : '表示する'}
+                  {isLoading ? "生成中..." : "表示する"}
                 </button>
               )}
             </div>
-            
+
             {mixingRecipe ? (
               <div className="space-y-4">
                 {/* 基本色の配合 */}
                 <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">基本色の配合</h5>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">
+                    基本色の配合
+                  </h5>
                   <div className="space-y-2">
                     {mixingRecipe.basicColors.map((basicColor, index) => (
                       <div key={index} className="flex items-center space-x-2">
@@ -138,8 +167,12 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
                           className="w-4 h-4 rounded border border-gray-200"
                           style={{ backgroundColor: basicColor.hex }}
                         />
-                        <span className="text-sm text-gray-900">{basicColor.name}</span>
-                        <span className="text-sm text-gray-600">{basicColor.ratio}%</span>
+                        <span className="text-sm text-gray-900">
+                          {basicColor.name}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          {basicColor.ratio}%
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -147,7 +180,9 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
 
                 {/* 混色手順 */}
                 <div>
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">混色手順</h5>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">
+                    混色手順
+                  </h5>
                   <ol className="text-sm text-gray-900 space-y-1">
                     {mixingRecipe.steps.map((step, index) => (
                       <li key={index} className="flex">
@@ -165,16 +200,24 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
                       {getMaterialName(material)}でのコツ
                     </h5>
                     <div className="text-sm text-gray-900">
-                      <p className="font-medium mb-1">{mixingRecipe.materialSpecific[material]!.technique}</p>
+                      <p className="font-medium mb-1">
+                        {mixingRecipe.materialSpecific[material]!.technique}
+                      </p>
                       <ul className="list-disc list-inside space-y-1 text-gray-600">
-                        {mixingRecipe.materialSpecific[material]!.tips.map((tip, index) => (
-                          <li key={index}>{tip}</li>
-                        ))}
+                        {mixingRecipe.materialSpecific[material]!.tips.map(
+                          (tip, index) => (
+                            <li key={index}>{tip}</li>
+                          )
+                        )}
                       </ul>
                       {mixingRecipe.materialSpecific[material]!.warnings && (
                         <div className="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400">
                           <div className="text-yellow-800">
-                            <strong>注意:</strong> {mixingRecipe.materialSpecific[material]!.warnings![0]}
+                            <strong>注意:</strong>{" "}
+                            {
+                              mixingRecipe.materialSpecific[material]!
+                                .warnings![0]
+                            }
                           </div>
                         </div>
                       )}
@@ -196,10 +239,11 @@ const ColorDetailsModal = ({ color, material, isOpen, onClose }: ColorDetailsMod
 
 const getMaterialName = (material: Material): string => {
   const names = {
-    pencil: 'デッサン',
-    watercolor: '水彩画',
-    'colored-pencil': '色鉛筆',
-    acrylic: 'アクリル絵の具',
+    // TODO: 今後追加予定の画材
+    // pencil: 'デッサン',
+    // watercolor: '水彩画',
+    // 'colored-pencil': '色鉛筆',
+    acrylic: "アクリル絵の具",
   };
   return names[material];
 };
@@ -208,9 +252,11 @@ export default function ColorPalette({
   palette,
   material,
   onColorSelect,
-  className = '',
+  className = "",
 }: ColorPaletteProps) {
-  const [selectedColor, setSelectedColor] = useState<ColorAnalysis | null>(null);
+  const [selectedColor, setSelectedColor] = useState<ColorAnalysis | null>(
+    null
+  );
 
   const handleColorClick = (color: ColorAnalysis) => {
     setSelectedColor(color);
@@ -221,29 +267,34 @@ export default function ColorPalette({
 
   const getTemperatureDisplay = (temp: string) => {
     switch (temp) {
-      case 'warm': return { text: '暖色系', color: 'text-orange-600' };
-      case 'cool': return { text: '寒色系', color: 'text-blue-600' };
-      default: return { text: '中間色', color: 'text-gray-600' };
+      case "warm":
+        return { text: "暖色系", color: "text-orange-600" };
+      case "cool":
+        return { text: "寒色系", color: "text-blue-600" };
+      default:
+        return { text: "中間色", color: "text-gray-600" };
     }
   };
 
   const tempDisplay = getTemperatureDisplay(palette.temperature);
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
+    <div
+      className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}
+    >
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <Palette className="w-5 h-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">カラーパレット</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            カラーパレット
+          </h3>
         </div>
         <div className="flex items-center space-x-4 text-sm">
           <span className={`font-medium ${tempDisplay.color}`}>
             {tempDisplay.text}
           </span>
-          <span className="text-gray-600">
-            複雑度: {palette.complexity}/10
-          </span>
+          <span className="text-gray-600">複雑度: {palette.complexity}/10</span>
         </div>
       </div>
 
@@ -257,7 +308,9 @@ export default function ColorPalette({
             onClick={() => handleColorClick(palette.dominantColor)}
           />
           <div>
-            <p className="font-medium text-gray-900">{palette.dominantColor.colorName}</p>
+            <p className="font-medium text-gray-900">
+              {palette.dominantColor.colorName}
+            </p>
             <p className="text-sm text-gray-600">
               出現頻度: {Math.round(palette.dominantColor.frequency * 100)}%
             </p>
@@ -277,8 +330,12 @@ export default function ColorPalette({
                 onClick={() => handleColorClick(color)}
               />
               <div className="mt-1 text-xs text-center">
-                <p className="font-medium text-gray-900 truncate">{color.colorName}</p>
-                <p className="text-gray-500">{Math.round(color.frequency * 100)}%</p>
+                <p className="font-medium text-gray-900 truncate">
+                  {color.colorName}
+                </p>
+                <p className="text-gray-500">
+                  {Math.round(color.frequency * 100)}%
+                </p>
               </div>
             </div>
           ))}

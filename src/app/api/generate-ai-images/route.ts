@@ -1,59 +1,70 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { GeminiImageService } from '@/services/gemini-image';
-import { ImageProcessor } from '@/lib/image-processor';
-import { ApiResponse } from '@/types/api';
-import { Material } from '@/types/tutorial';
-import { ImageGenerationRequest, ImageGenerationResponse } from '@/types/image-generation';
-import { readFile, writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
+import { NextRequest, NextResponse } from "next/server";
+import { GeminiImageService } from "@/services/gemini-image";
+import { ImageProcessor } from "@/lib/image-processor";
+import { ApiResponse } from "@/types/api";
+import { Material } from "@/types/tutorial";
+import {
+  ImageGenerationRequest,
+  ImageGenerationResponse,
+} from "@/types/image-generation";
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body: ImageGenerationRequest = await request.json();
-    const { imageUrl, material, textureStrength = 40 } = body;
+    const { imageUrl, material, textureStrength = 40, steps } = body;
 
     // バリデーション
-    if (!imageUrl || typeof imageUrl !== 'string') {
+    if (!imageUrl || typeof imageUrl !== "string") {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: '画像URLが指定されていません。',
+          code: "VALIDATION_ERROR",
+          message: "画像URLが指定されていません。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    if (!material || typeof material !== 'string') {
+    if (!material || typeof material !== "string") {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: '画材が指定されていません。',
+          code: "VALIDATION_ERROR",
+          message: "画材が指定されていません。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    const validMaterials: Material[] = ['pencil', 'watercolor', 'colored-pencil', 'acrylic'];
+    const validMaterials: Material[] = [
+      // TODO: 今後追加予定の画材
+      // 'pencil', 'watercolor', 'colored-pencil',
+      "acrylic",
+    ];
     if (!validMaterials.includes(material as Material)) {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: '無効な画材が指定されました。',
+          code: "VALIDATION_ERROR",
+          message: "無効な画材が指定されました。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    if (typeof textureStrength !== 'number' || textureStrength < 0 || textureStrength > 100) {
+    if (
+      typeof textureStrength !== "number" ||
+      textureStrength < 0 ||
+      textureStrength > 100
+    ) {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: '質感の強さは0〜100の数値で指定してください。',
+          code: "VALIDATION_ERROR",
+          message: "質感の強さは0〜100の数値で指定してください。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
@@ -62,9 +73,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // 元画像の読み込み
     let inputBuffer: Buffer;
     try {
-      if (imageUrl.startsWith('/uploads/')) {
+      if (imageUrl.startsWith("/uploads/")) {
         // ローカルファイルの場合
-        const filePath = path.join(process.cwd(), 'public', imageUrl);
+        const filePath = path.join(process.cwd(), "public", imageUrl);
         inputBuffer = await readFile(filePath);
       } else {
         // 外部URLの場合
@@ -76,24 +87,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         inputBuffer = Buffer.from(arrayBuffer);
       }
     } catch (error) {
-      console.error('Image loading error:', error);
+      console.error("Image loading error:", error);
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
-          code: 'GENERATION_ERROR',
-          message: '元画像の読み込みに失敗しました。',
+          code: "GENERATION_ERROR",
+          message: "元画像の読み込みに失敗しました。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
     // 画像生成保存用ディレクトリの作成
-    const generatedDir = path.join(process.cwd(), 'public', 'generated');
+    const generatedDir = path.join(process.cwd(), "public", "generated");
     if (!existsSync(generatedDir)) {
       await mkdir(generatedDir, { recursive: true });
     }
 
-    let generatedImages: ImageGenerationResponse['images'];
+    let generatedImages: ImageGenerationResponse["images"];
 
     try {
       // Gemini 2.5 Flash Image による画像生成を試行
@@ -101,22 +112,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const aiGeneratedImages = await geminiImageService.generateAllVariations(
         inputBuffer,
         material as Material,
-        textureStrength
+        textureStrength,
+        steps
       );
 
       const timestamp = Date.now();
-      const imageUrls: ImageGenerationResponse['images'] = {
-        lineArt: '',
-        flatColor: '',
-        highlight: '',
-        paintedSample: '',
+      const imageUrls: ImageGenerationResponse["images"] = {
+        lineArt: "",
+        flatColor: "",
+        highlight: "",
+        paintedSample: "",
       };
 
       // 各生成画像を保存
       for (const [type, buffer] of Object.entries(aiGeneratedImages)) {
         const fileName = `ai-${timestamp}-${type}.jpg`;
         const filePath = path.join(generatedDir, fileName);
-        
+
         try {
           await writeFile(filePath, buffer);
           imageUrls[type as keyof typeof imageUrls] = `/generated/${fileName}`;
@@ -128,15 +140,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       generatedImages = imageUrls;
-
     } catch (geminiError) {
-      console.warn('Gemini image generation failed, falling back to ImageProcessor:', geminiError);
+      console.warn(
+        "Gemini image generation failed, falling back to ImageProcessor:",
+        geminiError
+      );
 
       // フォールバック: 既存のImageProcessorを使用
       try {
         const imageProcessor = new ImageProcessor();
         const timestamp = Date.now();
-        const imageUrls: ImageGenerationResponse['images'] = {
+        const imageUrls: ImageGenerationResponse["images"] = {
           lineArt: imageUrl,
           flatColor: imageUrl,
           highlight: imageUrl,
@@ -163,10 +177,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         imageUrls.paintedSample = fallbackUrl;
 
         generatedImages = imageUrls;
-
       } catch (fallbackError) {
-        console.error('Fallback image processing also failed:', fallbackError);
-        
+        console.error("Fallback image processing also failed:", fallbackError);
+
         // 最終フォールバック: 元画像を全てに使用
         generatedImages = {
           lineArt: imageUrl,
@@ -187,23 +200,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     };
 
     return NextResponse.json(response);
-
   } catch (error) {
-    console.error('Generate AI images API error:', error);
+    console.error("Generate AI images API error:", error);
 
-    let errorMessage = 'AI画像生成に失敗しました。';
-    let errorCode = 'GENERATION_ERROR';
+    let errorMessage = "AI画像生成に失敗しました。";
+    let errorCode = "GENERATION_ERROR";
 
     if (error instanceof Error) {
-      if (error.message.includes('TIMEOUT')) {
-        errorMessage = '画像生成がタイムアウトしました。画像サイズを小さくしてお試しください。';
-        errorCode = 'TIMEOUT_ERROR';
-      } else if (error.message.includes('ENOENT') || error.message.includes('file')) {
-        errorMessage = '画像ファイルが見つかりません。';
-      } else if (error.message.includes('memory') || error.message.includes('size')) {
-        errorMessage = '画像サイズが大きすぎます。小さい画像をお試しください。';
-      } else if (error.message.includes('API')) {
-        errorMessage = 'AI画像生成サービスに問題が発生しました。しばらく待ってから再試行してください。';
+      if (error.message.includes("TIMEOUT")) {
+        errorMessage =
+          "画像生成がタイムアウトしました。画像サイズを小さくしてお試しください。";
+        errorCode = "TIMEOUT_ERROR";
+      } else if (
+        error.message.includes("ENOENT") ||
+        error.message.includes("file")
+      ) {
+        errorMessage = "画像ファイルが見つかりません。";
+      } else if (
+        error.message.includes("memory") ||
+        error.message.includes("size")
+      ) {
+        errorMessage = "画像サイズが大きすぎます。小さい画像をお試しください。";
+      } else if (error.message.includes("API")) {
+        errorMessage =
+          "AI画像生成サービスに問題が発生しました。しばらく待ってから再試行してください。";
       }
     }
 

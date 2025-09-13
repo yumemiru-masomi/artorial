@@ -73,7 +73,7 @@ export function useImageUpload(): UseImageUploadReturn {
                 setError(errorMessage);
                 reject(new Error(errorMessage));
               }
-            } catch (parseError) {
+            } catch {
               const errorMessage = 'サーバーからの応答を解析できませんでした。';
               setError(errorMessage);
               reject(new Error(errorMessage));

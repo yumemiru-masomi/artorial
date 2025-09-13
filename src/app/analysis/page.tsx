@@ -1,15 +1,8 @@
 "use client";
 import Image from "next/image";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Clock,
-  Star,
-  Users,
-  ArrowLeft,
-  ArrowRight,
-  RefreshCw,
-} from "lucide-react";
+import { Clock, Star, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
@@ -25,16 +18,7 @@ function AnalysisPageContent() {
   const imageUrl = searchParams.get("image");
   const material = searchParams.get("material") as Material;
 
-  useEffect(() => {
-    if (!imageUrl || !material) {
-      router.push("/");
-      return;
-    }
-
-    performAnalysis();
-  }, [imageUrl, material]);
-
-  const performAnalysis = async () => {
+  const performAnalysis = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -57,12 +41,21 @@ function AnalysisPageContent() {
       } else {
         setError(data.error?.message || "解析に失敗しました。");
       }
-    } catch (err) {
+    } catch {
       setError("ネットワークエラーが発生しました。");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [imageUrl, material]);
+
+  useEffect(() => {
+    if (!imageUrl || !material) {
+      router.push("/");
+      return;
+    }
+
+    performAnalysis();
+  }, [imageUrl, material, performAnalysis, router]);
 
   const handleRetry = () => {
     performAnalysis();
@@ -74,12 +67,19 @@ function AnalysisPageContent() {
 
   const handleProceedToTutorial = () => {
     if (analysisResult && imageUrl && material) {
-      const params = new URLSearchParams({
-        image: imageUrl,
-        material: material,
-        analysis: JSON.stringify(analysisResult),
-      });
-      router.push(`/tutorial?${params.toString()}`);
+      // セッションストレージに保存
+      const tutorialData = {
+        imageUrl,
+        material,
+        analysisResult,
+      };
+      sessionStorage.setItem(
+        "artorial_tutorial_data",
+        JSON.stringify(tutorialData)
+      );
+
+      // チュートリアルページに遷移
+      router.push("/tutorial");
     }
   };
 
@@ -104,9 +104,10 @@ function AnalysisPageContent() {
   };
 
   const materialNames = {
-    pencil: "デッサン",
-    watercolor: "水彩画",
-    "colored-pencil": "色鉛筆",
+    // TODO: 今後追加予定の画材
+    // pencil: "デッサン",
+    // watercolor: "水彩画",
+    // "colored-pencil": "色鉛筆",
     acrylic: "アクリル絵の具",
   };
 

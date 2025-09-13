@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { GeneratedStep } from '@/types/analysis';
 
 interface UseTutorialReturn {
   currentStep: number;

@@ -32,13 +32,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
+    // 🚨 モックモード: 環境変数でコスト削減のためのモック画像を返す
+    const MOCK_MODE = process.env.MOCK_STEP_IMAGES === "true";
+
+    if (MOCK_MODE) {
+      console.log(
+        `🎭 モックモード: ステップ${stepNumber}のモック画像を返します（コスト削減）`
+      );
+
+      // モック画像を生成（ステップ番号に応じて異なる色）
+      const mockImageBase64 = generateMockStepImage(
+        stepNumber,
+        stepDescription,
+        material
+      );
+
+      const response: ApiResponse<{ imageUrl: string }> = {
+        success: true,
+        data: {
+          imageUrl: mockImageBase64,
+        },
+      };
+
+      return NextResponse.json(response);
+    }
+
     // 元画像を読み込み
     let inputBuffer: Buffer;
     try {
       if (originalImageUrl.startsWith("/uploads/")) {
         // ローカルファイルの場合
-        const fs = require("fs/promises");
-        const path = require("path");
+        const fs = await import("fs/promises");
+        const path = await import("path");
         const filePath = path.join(process.cwd(), "public", originalImageUrl);
         inputBuffer = await fs.readFile(filePath);
       } else {

@@ -9,7 +9,7 @@ import {
   Loader2,
   Palette,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { GeneratedStep } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ColorPalette as ColorPaletteType } from "@/types/color-palette";
@@ -50,121 +50,84 @@ export default function StepGuide({
   // 画像生成進捗表示を削除
 
   // ステップ画像を生成する関数
-  async function generateStepImage(stepIndex: number): Promise<string | null> {
-    try {
-      const targetStep = allSteps[stepIndex];
-      if (!targetStep) return null;
+  const generateStepImage = useCallback(
+    async (stepIndex: number): Promise<string | null> => {
+      try {
+        const targetStep = allSteps[stepIndex];
+        if (!targetStep) return null;
 
-      // 生成状態をコンソールログのみに
+        // 生成状態をコンソールログのみに
 
-      const response = await fetch("/api/generate-step-image", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          originalImageUrl,
-          stepNumber: stepIndex + 1,
-          stepDescription: targetStep.description,
-          material,
-          previousStepImageUrl: stepImages[stepIndex - 1] || null,
-        }),
-      });
+        const response = await fetch("/api/generate-step-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            originalImageUrl,
+            stepNumber: stepIndex + 1,
+            stepDescription: targetStep.description,
+            material,
+            previousStepImageUrl: stepImages[stepIndex - 1] || null,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          // 生成完了をコンソールログのみに
+          return data.data.imageUrl;
+        } else {
+          throw new Error(data.error?.message || "Failed to generate image");
+        }
+      } catch (error) {
+        console.error(`Error generating step ${stepIndex + 1} image:`, error);
+        // エラー状態をコンソールログのみに
+        return null;
       }
+    },
+    [allSteps, originalImageUrl, material, stepImages]
+  );
 
-      const data = await response.json();
-      if (data.success) {
-        // 生成完了をコンソールログのみに
-        return data.data.imageUrl;
-      } else {
-        throw new Error(data.error?.message || "Failed to generate image");
-      }
-    } catch (error) {
-      console.error(`Error generating step ${stepIndex + 1} image:`, error);
-      // エラー状態をコンソールログのみに
-      return null;
-    }
-  }
-
-  // 全ステップの画像を順次生成する関数
-  async function generateAllStepImages() {
-    console.log(`🚀 全${allSteps.length}ステップの画像生成を開始`);
-
-    // 現在のステップから開始して、順次生成
+  // 現在のステップの画像のみを生成する関数（コスト削減）
+  const generateCurrentStepImageOnly = useCallback(async () => {
     const currentIndex = currentStepNumber - 1;
 
-    try {
-      // 1. まず現在のステップの画像を生成（優先処理）
-      setLoading(true);
-      console.log(`📸 ステップ${currentIndex + 1}の画像を優先生成中...`);
+    // 既に生成済みの場合はスキップ
+    if (stepImages[currentIndex]) {
+      console.log(
+        `✅ ステップ${currentIndex + 1}の画像は既に生成済み - スキップ`
+      );
+      return;
+    }
 
+    console.log(`📸 ステップ${currentIndex + 1}の画像を生成中...`);
+
+    try {
+      setLoading(true);
       const currentImageUrl = await generateStepImage(currentIndex);
+
       if (currentImageUrl) {
         setStepImages((prev) => {
           const newArray = [...prev];
           newArray[currentIndex] = currentImageUrl;
           return newArray;
         });
-        console.log(
-          `✅ ステップ${currentIndex + 1}の画像生成完了 - ローディング解除`
-        );
-
-        // 🎯 重要: 1枚目が完成した時点でローディング解除
-        setLoading(false);
+        console.log(`✅ ステップ${currentIndex + 1}の画像生成完了`);
       } else {
         console.warn(`⚠️ ステップ${currentIndex + 1}の画像生成に失敗`);
-        setLoading(false);
       }
-
-      // 2. 残りの全ステップを並列で生成（バックグラウンド処理）
-      const remainingSteps = allSteps
-        .map((_, index) => index)
-        .filter((index) => index !== currentIndex);
-
-      console.log(
-        `🔄 残り${remainingSteps.length}ステップをバックグラウンドで生成開始`
-      );
-
-      // 並列生成のPromise配列を作成（非同期でバックグラウンド実行）
-      const generationPromises = remainingSteps.map(async (stepIndex) => {
-        const imageUrl = await generateStepImage(stepIndex);
-        if (imageUrl) {
-          setStepImages((prev) => {
-            const newArray = [...prev];
-            newArray[stepIndex] = imageUrl;
-            return newArray;
-          });
-        }
-        return { stepIndex, imageUrl };
-      });
-
-      // バックグラウンドで全ての生成を並列実行（awaitしない）
-      Promise.allSettled(generationPromises).then((results) => {
-        // 結果をログ出力
-        results.forEach((result, index) => {
-          const stepIndex = remainingSteps[index];
-          if (result.status === "fulfilled") {
-            console.log(`✅ ステップ${stepIndex + 1}の画像生成完了`);
-          } else {
-            console.error(
-              `❌ ステップ${stepIndex + 1}の画像生成失敗:`,
-              result.reason
-            );
-          }
-        });
-
-        console.log(`🎉 全ステップの画像生成処理完了`);
-      });
     } catch (error) {
-      console.error("❌ 現在ステップの画像生成中にエラー:", error);
+      console.error(`❌ ステップ${currentIndex + 1}の画像生成エラー:`, error);
+    } finally {
       setLoading(false);
     }
-  }
+  }, [currentStepNumber, stepImages, generateStepImage]);
 
-  // 初回ロード時に全ステップの画像生成を開始
+  // 初回ロード時に現在のステップの画像のみ生成（コスト削減）
   useEffect(() => {
     const currentIndex = currentStepNumber - 1;
 
@@ -174,8 +137,8 @@ export default function StepGuide({
       return;
     }
 
-    // 全ステップの画像生成を開始
-    generateAllStepImages();
+    // 現在のステップの画像のみ生成
+    generateCurrentStepImageOnly();
   }, [currentStepNumber, originalImageUrl, material]);
 
   // 生成進捗を監視して次へボタンの状態を更新
@@ -282,7 +245,7 @@ export default function StepGuide({
             {/* カラーパレット */}
             {showColorPalette && colorPalette && (
               <div className="mt-6">
-                <ColorPalette palette={colorPalette} />
+                <ColorPalette palette={colorPalette} material={material} />
               </div>
             )}
           </div>

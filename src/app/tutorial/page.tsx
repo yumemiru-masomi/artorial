@@ -11,25 +11,27 @@ import {
 } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
-import { ImageGenerationResponse } from "@/types/image-generation";
+// ImageGenerationResponse削除 - StepGuideで画像生成（コスト削減）
+
+interface TutorialData {
+  imageUrl: string;
+  material: Material;
+  analysisResult: ImageAnalysisResponse;
+}
+
+const TUTORIAL_DATA_KEY = "artorial_tutorial_data";
 
 function TutorialPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [tutorialData, setTutorialData] = useState<TutorialData | null>(null);
   const [stepsData, setStepsData] = useState<StepGenerationResponse | null>(
     null
   );
-  const [generatedImages, setGeneratedImages] = useState<
-    ImageGenerationResponse["images"] | null
-  >(null);
+  // generatedImages, isGeneratingImages を削除 - StepGuideで必要時に生成（コスト削減）
   const [isLoading, setIsLoading] = useState(true);
-  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
-
-  const imageUrl = searchParams.get("image");
-  const material = searchParams.get("material") as Material;
-  const analysisResultStr = searchParams.get("analysis");
 
   const {
     currentStep,
@@ -37,98 +39,99 @@ function TutorialPageContent() {
     goToPreviousStep,
     isFirstStep,
     isLastStep,
-    progress,
   } = useTutorial(stepsData?.steps.length || 0);
 
   useEffect(() => {
+    // セッションストレージからデータを取得
+    const storedData = sessionStorage.getItem(TUTORIAL_DATA_KEY);
+    if (storedData) {
+      try {
+        const data: TutorialData = JSON.parse(storedData);
+        setTutorialData(data);
+        generateSteps(data);
+        return;
+      } catch (error) {
+        console.error(
+          "Failed to parse tutorial data from session storage:",
+          error
+        );
+      }
+    }
+
+    // フォールバック：URLパラメータから取得
+    const imageUrl = searchParams.get("image");
+    const material = searchParams.get("material") as Material;
+    const analysisResultStr = searchParams.get("analysis");
+
     if (!imageUrl || !material || !analysisResultStr) {
       router.push("/");
       return;
     }
 
-    generateSteps();
-  }, [imageUrl, material, analysisResultStr]);
+    try {
+      const analysisResult: ImageAnalysisResponse =
+        JSON.parse(analysisResultStr);
+      const data: TutorialData = {
+        imageUrl,
+        material,
+        analysisResult,
+      };
+      setTutorialData(data);
+      generateSteps(data);
+    } catch (error) {
+      console.error("Failed to parse analysis result:", error);
+      router.push("/");
+    }
+  }, [router, searchParams]);
 
-  const generateSteps = async () => {
+  const generateSteps = async (data: TutorialData) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const analysisResult: ImageAnalysisResponse = JSON.parse(
-        analysisResultStr || "{}"
-      );
-
       const response = await fetch("/api/generate-steps", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          imageUrl,
-          material,
-          analysisResult,
+          imageUrl: data.imageUrl,
+          material: data.material,
+          analysisResult: data.analysisResult,
         }),
       });
 
-      const data: ApiResponse<StepGenerationResponse> = await response.json();
+      const result: ApiResponse<StepGenerationResponse> = await response.json();
 
-      if (data.success && data.data) {
-        setStepsData(data.data);
-        // 手順生成後に画像生成を開始
-        generateImages();
+      if (result.success && result.data) {
+        setStepsData(result.data);
+        // 画像生成はStepGuideコンポーネントで必要時に実行（コスト削減）
       } else {
-        setError(data.error?.message || "手順の生成に失敗しました。");
+        setError(result.error?.message || "手順の生成に失敗しました。");
       }
-    } catch (err) {
+    } catch {
       setError("ネットワークエラーが発生しました。");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateImages = async () => {
-    if (!imageUrl || !material) return;
+  // generateImages関数を削除 - StepGuideコンポーネントで必要時に生成（コスト削減）
 
-    setIsGeneratingImages(true);
-    try {
-      const response = await fetch("/api/generate-ai-images", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageUrl,
-          material,
-          textureStrength: 40, // デフォルト値
-        }),
-      });
-
-      const data: ApiResponse<ImageGenerationResponse> = await response.json();
-
-      if (data.success && data.data) {
-        setGeneratedImages(data.data.images);
-      } else {
-        console.warn("画像生成に失敗しました:", data.error?.message);
-        // 画像生成は失敗してもチュートリアルは続行可能
-      }
-    } catch (err) {
-      console.warn("画像生成でネットワークエラーが発生しました:", err);
-      // 画像生成は失敗してもチュートリアルは続行可能
-    } finally {
-      setIsGeneratingImages(false);
+  const handleRetry = () => {
+    if (tutorialData) {
+      generateSteps(tutorialData);
     }
   };
 
-  const handleRetry = () => {
-    generateSteps();
-  };
-
   const handleBackToAnalysis = () => {
-    const params = new URLSearchParams({
-      image: imageUrl || "",
-      material: material || "",
-    });
-    router.push(`/analysis?${params.toString()}`);
+    if (tutorialData) {
+      const params = new URLSearchParams({
+        image: tutorialData.imageUrl || "",
+        material: tutorialData.material || "",
+      });
+      router.push(`/analysis?${params.toString()}`);
+    }
   };
 
   const handleNextStep = () => {
@@ -144,9 +147,10 @@ function TutorialPageContent() {
   };
 
   const materialNames = {
-    pencil: "デッサン",
-    watercolor: "水彩画",
-    "colored-pencil": "色鉛筆",
+    // TODO: 今後追加予定の画材
+    // pencil: "デッサン",
+    // watercolor: "水彩画",
+    // "colored-pencil": "色鉛筆",
     acrylic: "アクリル絵の具",
   };
 
@@ -161,7 +165,12 @@ function TutorialPageContent() {
             描画手順を生成中...
           </h2>
           <p className="text-gray-600 mb-4">
-            {materialNames[material]}での段階的な手順を作成しています
+            {tutorialData &&
+              (materialNames[
+                tutorialData.material as keyof typeof materialNames
+              ] ||
+                materialNames.acrylic)}
+            での段階的な手順を作成しています
           </p>
           <div className="w-64 bg-gray-200 rounded-full h-2 mx-auto">
             <div
@@ -230,7 +239,12 @@ function TutorialPageContent() {
             おめでとうございます！
           </h2>
           <p className="text-xl text-gray-600 mb-2">
-            {materialNames[material]}の手順が完了しました
+            {tutorialData &&
+              (materialNames[
+                tutorialData.material as keyof typeof materialNames
+              ] ||
+                materialNames.acrylic)}
+            の手順が完了しました
           </p>
           <p className="text-gray-500 mb-8">
             推定時間: {stepsData.totalEstimatedTime}分 |{" "}
@@ -304,35 +318,37 @@ function TutorialPageContent() {
               </button>
               <span className="text-gray-400">|</span>
               <h1 className="text-2xl font-bold text-gray-900 ml-4">
-                {materialNames[material]}の描画手順
+                {tutorialData &&
+                  (materialNames[
+                    tutorialData.material as keyof typeof materialNames
+                  ] ||
+                    materialNames.acrylic)}
+                の描画手順
               </h1>
             </div>
             <div className="text-sm text-gray-600">
               推定時間: {stepsData.totalEstimatedTime}分
-              {isGeneratingImages && (
-                <div className="flex items-center text-blue-600 mt-1">
-                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                  参考画像生成中...
-                </div>
-              )}
+              {/* 画像生成状態表示を削除 - StepGuideで必要時に生成（コスト削減） */}
             </div>
           </div>
         </div>
       </div>
 
       {/* ステップガイド */}
-      <StepGuide
-        step={currentStepData}
-        currentStepNumber={currentStep}
-        totalSteps={stepsData.steps.length}
-        onPrevious={goToPreviousStep}
-        onNext={handleNextStep}
-        originalImageUrl={imageUrl || ""}
-        material={material}
-        isFirstStep={isFirstStep}
-        isLastStep={isLastStep}
-        allSteps={stepsData.steps}
-      />
+      {tutorialData && (
+        <StepGuide
+          step={currentStepData}
+          currentStepNumber={currentStep}
+          totalSteps={stepsData.steps.length}
+          onPrevious={goToPreviousStep}
+          onNext={handleNextStep}
+          originalImageUrl={tutorialData.imageUrl}
+          material={tutorialData.material}
+          isFirstStep={isFirstStep}
+          isLastStep={isLastStep}
+          allSteps={stepsData.steps}
+        />
+      )}
     </div>
   );
 }

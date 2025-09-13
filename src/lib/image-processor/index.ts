@@ -99,7 +99,6 @@ export class ImageProcessor {
     totalSteps: number
   ): Promise<Buffer> {
     try {
-      const progressRatio = stepNumber / totalSteps;
 
       switch (material) {
         case "pencil": // デッサン
