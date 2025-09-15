@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GeminiImageService } from "@/services/gemini-image";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
 
@@ -65,7 +64,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // ステップに応じたプロンプトを生成
     const prompt = generateStepPrompt(stepNumber, stepDescription, material);
 
+    // 環境変数チェック
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+
     // Gemini Image Serviceで画像生成
+    const { GeminiImageService } = await import("@/services/gemini-image");
     const geminiImageService = new GeminiImageService();
     const generatedImageBuffer = await geminiImageService.generateStepImage(
       inputBuffer,
