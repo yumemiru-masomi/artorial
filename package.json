@@ -9,7 +9,10 @@
     "dev": "next dev -p 3003",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "lint:strict": "eslint . --max-warnings=0",
+    "predeploy": "npm run typecheck && npm run lint:strict && next build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

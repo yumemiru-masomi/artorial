@@ -239,10 +239,9 @@ const ColorDetailsModal = ({
 
 const getMaterialName = (material: Material): string => {
   const names = {
-    // TODO: 今後追加予定の画材
-    // pencil: 'デッサン',
-    // watercolor: '水彩画',
-    // 'colored-pencil': '色鉛筆',
+    pencil: "デッサン",
+    watercolor: "水彩画",
+    "colored-pencil": "色鉛筆",
     acrylic: "アクリル絵の具",
   };
   return names[material];
