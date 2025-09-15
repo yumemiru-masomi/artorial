@@ -3,18 +3,22 @@ import { Material } from "@/types/tutorial";
 import { GeneratedImages } from "@/types/image-generation";
 
 export class GeminiImageService {
-  private genAI: GoogleGenerativeAI;
-  private model: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  private genAI?: GoogleGenerativeAI;
+  private model?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   constructor() {
-    if (!process.env.GEMINI_API_KEY) {
+    // ビルド時は環境変数チェックをスキップ
+    if (process.env.NODE_ENV === "production" && !process.env.GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY is not configured");
     }
 
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    this.model = this.genAI.getGenerativeModel({
-      model: process.env.IMAGE_MODEL_ID ?? "gemini-2.5-flash-image-preview", // 画像生成専用モデル
-    });
+    // 環境変数が存在する場合のみ初期化
+    if (process.env.GEMINI_API_KEY) {
+      this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      this.model = this.genAI.getGenerativeModel({
+        model: process.env.IMAGE_MODEL_ID ?? "gemini-2.5-flash-image-preview", // 画像生成専用モデル
+      });
+    }
   }
 
   /**
@@ -25,6 +29,10 @@ export class GeminiImageService {
     material: Material,
     textureStrength: number = 40
   ): Promise<GeneratedImages> {
+    if (!this.genAI || !this.model) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+
     const base64Image = imageBuffer.toString("base64");
 
     try {
