@@ -112,8 +112,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const aiGeneratedImages = await geminiImageService.generateAllVariations(
         inputBuffer,
         material as Material,
-        textureStrength,
-        steps
+        textureStrength
       );
 
       const timestamp = Date.now();
