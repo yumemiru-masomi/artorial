@@ -66,9 +66,7 @@ export async function POST(req: NextRequest) {
       colors: 8,
     });
 
-    const quantized = await iq.applyPalette(pointContainer, palette, {
-      dithering: 0,
-    });
+    const quantized = await iq.applyPalette(pointContainer, palette);
 
     const quantData = quantized.toUint8Array();
     const flatPng = new PNG({ width: png.width, height: png.height });
@@ -156,7 +154,6 @@ export async function POST(req: NextRequest) {
             .modulate({ brightness: 0.7 }) // 影用に暗くした元画像
             .toBuffer(),
           blend: "multiply" as const,
-          mask: shadowMaskBuf,
         },
       ])
       .toBuffer();
@@ -169,7 +166,6 @@ export async function POST(req: NextRequest) {
             .modulate({ brightness: 1.3 }) // ハイライト用に明るくした元画像
             .toBuffer(),
           blend: "overlay" as const,
-          mask: highlightMaskBuf,
         },
       ])
       .toBuffer();
