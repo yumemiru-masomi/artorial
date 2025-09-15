@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GeminiImageService } from "@/services/gemini-image";
 import { ImageProcessor } from "@/lib/image-processor";
 import { ApiResponse } from "@/types/api";
 import { Material } from "@/types/tutorial";
@@ -14,7 +13,7 @@ import path from "path";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body: ImageGenerationRequest = await request.json();
-    const { imageUrl, material, textureStrength = 40, steps } = body;
+    const { imageUrl, material, textureStrength = 40 } = body;
 
     // バリデーション
     if (!imageUrl || typeof imageUrl !== "string") {
@@ -113,6 +112,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       // Gemini 2.5 Flash Image による画像生成を試行
+      const { GeminiImageService } = await import("@/services/gemini-image");
       const geminiImageService = new GeminiImageService();
       const aiGeneratedImages = await geminiImageService.generateAllVariations(
         inputBuffer,
