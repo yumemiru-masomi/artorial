@@ -107,6 +107,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let generatedImages: ImageGenerationResponse["images"];
 
     try {
+      // 環境変数チェック
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY is not configured");
+      }
+
       // Gemini 2.5 Flash Image による画像生成を試行
       const geminiImageService = new GeminiImageService();
       const aiGeneratedImages = await geminiImageService.generateAllVariations(
