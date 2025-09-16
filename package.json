@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev -p 3003",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "lint:strict": "eslint . --max-warnings=0",
