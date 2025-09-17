@@ -13,22 +13,23 @@ const ANALYSIS_TIMEOUT = 30000; // 30秒
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = await request.json();
-    const { imageUrl, material } = body;
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const material = formData.get("material") as string;
 
     // バリデーション
-    if (!imageUrl || typeof imageUrl !== "string") {
+    if (!file) {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
           code: "VALIDATION_ERROR",
-          message: "画像URLが指定されていません。",
+          message: "画像ファイルが指定されていません。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    if (!material || !VALID_MATERIALS.includes(material)) {
+    if (!material || !VALID_MATERIALS.includes(material as Material)) {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
@@ -51,10 +52,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(errorResponse, { status: 500 });
     }
 
+    // ファイルをBase64に変換
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64Image = buffer.toString("base64");
+
     const geminiService = new GeminiService();
 
     // タイムアウト付きで解析実行
-    const analysisPromise = geminiService.analyzeImage(imageUrl, material);
+    const analysisPromise = geminiService.analyzeImageFromBase64(
+      base64Image,
+      material as Material,
+      file.type
+    );
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
         reject(new Error("TIMEOUT"));

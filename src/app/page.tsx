@@ -9,8 +9,8 @@ import { Material } from "@/types/tutorial";
 
 export default function Home() {
   const router = useRouter();
-  const { uploadImage, isUploading, error, reset } = useImageUpload();
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const { processFile, isProcessing, error, reset } = useImageUpload();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
   );
@@ -21,15 +21,15 @@ export default function Home() {
 
   const handleImageSelect = async (file: File) => {
     reset();
-    const imageUrl = await uploadImage(file);
-    if (imageUrl) {
-      setUploadedImageUrl(imageUrl);
+    const processedFile = await processFile(file);
+    if (processedFile) {
+      setSelectedFile(processedFile);
       setCurrentStep("material");
     }
   };
 
   const handleImageRemove = () => {
-    setUploadedImageUrl(null);
+    setSelectedFile(null);
     setSelectedMaterial(null);
     setCurrentStep("upload");
     reset();
@@ -40,14 +40,18 @@ export default function Home() {
   };
 
   const handleStartAnalysis = () => {
-    if (uploadedImageUrl && selectedMaterial) {
-      // 解析結果ページへ遷移（URLパラメータで画像とマテリアル情報を渡す）
-      const params = new URLSearchParams({
-        image: uploadedImageUrl,
-        material: selectedMaterial,
-        textureStrength: textureStrength.toString(),
-      });
-      router.push(`/analysis?${params.toString()}`);
+    if (selectedFile && selectedMaterial) {
+      // ファイルをsessionStorageに一時保存（Base64形式）
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          sessionStorage.setItem("selectedFile", reader.result as string);
+          sessionStorage.setItem("selectedMaterial", selectedMaterial);
+          sessionStorage.setItem("textureStrength", textureStrength.toString());
+          router.push("/analysis");
+        }
+      };
+      reader.readAsDataURL(selectedFile);
     }
   };
 
@@ -70,7 +74,7 @@ export default function Home() {
               className={`flex items-center ${
                 currentStep === "upload"
                   ? "text-blue-600"
-                  : uploadedImageUrl
+                  : selectedFile
                   ? "text-green-600"
                   : "text-gray-400"
               }`}
@@ -79,7 +83,7 @@ export default function Home() {
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
                   currentStep === "upload"
                     ? "bg-blue-600"
-                    : uploadedImageUrl
+                    : selectedFile
                     ? "bg-green-600"
                     : "bg-gray-400"
                 }`}
@@ -90,7 +94,7 @@ export default function Home() {
             </div>
             <div
               className={`w-8 h-0.5 ${
-                uploadedImageUrl ? "bg-green-600" : "bg-gray-300"
+                selectedFile ? "bg-green-600" : "bg-gray-300"
               }`}
             ></div>
             <div
@@ -147,13 +151,13 @@ export default function Home() {
               <ImageUpload
                 onImageSelect={handleImageSelect}
                 onImageRemove={handleImageRemove}
-                isUploading={isUploading}
+                isProcessing={isProcessing}
                 error={error || undefined}
               />
             </div>
           )}
 
-          {currentStep === "material" && uploadedImageUrl && (
+          {currentStep === "material" && selectedFile && (
             <div>
               <MaterialSelector
                 selectedMaterial={selectedMaterial}
@@ -186,14 +190,14 @@ export default function Home() {
         </div>
 
         {/* アップロードされた画像のプレビュー（画材選択時） */}
-        {currentStep === "material" && uploadedImageUrl && (
+        {currentStep === "material" && selectedFile && (
           <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               選択された画像
             </h3>
             <div className="relative w-full max-w-md mx-auto">
               <Image
-                src={uploadedImageUrl}
+                src={URL.createObjectURL(selectedFile)}
                 alt="アップロードされた画像"
                 width={400}
                 height={300}

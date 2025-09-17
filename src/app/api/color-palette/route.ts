@@ -11,16 +11,19 @@ import path from "path";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body: ColorPaletteRequest = await request.json();
-    const { imageUrl, material, maxColors = 8 } = body;
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const material = formData.get("material") as string;
+    const maxColorsStr = formData.get("maxColors") as string;
+    const maxColors = maxColorsStr ? parseInt(maxColorsStr, 10) : 8;
 
     // バリデーション
-    if (!imageUrl || typeof imageUrl !== "string") {
+    if (!file) {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
           code: "VALIDATION_ERROR",
-          message: "画像URLが指定されていません。",
+          message: "画像ファイルが指定されていません。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
@@ -64,29 +67,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    // 元画像の読み込み
+    // ファイルをBufferに変換
     let inputBuffer: Buffer;
     try {
-      if (imageUrl.startsWith("/uploads/")) {
-        // ローカルファイルの場合
-        const filePath = path.join(process.cwd(), "public", imageUrl);
-        inputBuffer = await readFile(filePath);
-      } else {
-        // 外部URLの場合
-        const response = await fetch(imageUrl);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const arrayBuffer = await response.arrayBuffer();
-        inputBuffer = Buffer.from(arrayBuffer);
-      }
+      const bytes = await file.arrayBuffer();
+      inputBuffer = Buffer.from(bytes);
     } catch (error) {
-      console.error("Image loading error:", error);
+      console.error("File processing error:", error);
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
-          code: "GENERATION_ERROR",
-          message: "元画像の読み込みに失敗しました。",
+          code: "VALIDATION_ERROR",
+          message: "ファイルの処理に失敗しました。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });

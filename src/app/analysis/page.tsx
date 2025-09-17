@@ -9,29 +9,28 @@ import { ApiResponse } from "@/types/api";
 
 function AnalysisPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [analysisResult, setAnalysisResult] =
     useState<ImageAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const imageUrl = searchParams.get("image");
-  const material = searchParams.get("material") as Material;
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [material, setMaterial] = useState<Material | null>(null);
+  const [textureStrength, setTextureStrength] = useState<number>(40);
 
   const performAnalysis = useCallback(async () => {
+    if (!selectedFile || !material) return;
+
     setIsLoading(true);
     setError(null);
 
     try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("material", material);
+
       const response = await fetch("/api/analysis", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageUrl,
-          material,
-        }),
+        body: formData,
       });
 
       const data: ApiResponse<ImageAnalysisResponse> = await response.json();
@@ -46,16 +45,38 @@ function AnalysisPageContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [imageUrl, material]);
+  }, [selectedFile, material]);
 
   useEffect(() => {
-    if (!imageUrl || !material) {
+    // sessionStorageからデータを取得
+    const fileData = sessionStorage.getItem("selectedFile");
+    const materialData = sessionStorage.getItem("selectedMaterial");
+    const textureData = sessionStorage.getItem("textureStrength");
+
+    if (!fileData || !materialData) {
       router.push("/");
       return;
     }
 
-    performAnalysis();
-  }, [imageUrl, material, performAnalysis, router]);
+    // Base64からFileオブジェクトを復元
+    fetch(fileData)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const file = new File([blob], "image.jpg", { type: blob.type });
+        setSelectedFile(file);
+        setMaterial(materialData as Material);
+        setTextureStrength(textureData ? parseInt(textureData, 10) : 40);
+      })
+      .catch(() => {
+        router.push("/");
+      });
+  }, [router]);
+
+  useEffect(() => {
+    if (selectedFile && material) {
+      performAnalysis();
+    }
+  }, [selectedFile, material, performAnalysis]);
 
   const handleRetry = () => {
     performAnalysis();
@@ -66,17 +87,9 @@ function AnalysisPageContent() {
   };
 
   const handleProceedToTutorial = () => {
-    if (analysisResult && imageUrl && material) {
-      // セッションストレージに保存
-      const tutorialData = {
-        imageUrl,
-        material,
-        analysisResult,
-      };
-      sessionStorage.setItem(
-        "artorial_tutorial_data",
-        JSON.stringify(tutorialData)
-      );
+    if (analysisResult && selectedFile && material) {
+      // 分析結果をsessionStorageに保存（ファイルは既に保存済み）
+      sessionStorage.setItem("analysisResult", JSON.stringify(analysisResult));
 
       // チュートリアルページに遷移
       router.push("/tutorial");
@@ -190,7 +203,7 @@ function AnalysisPageContent() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">解析結果</h1>
           <p className="text-gray-600">
-            AI が画像を解析し、{materialNames[material]}
+            AI が画像を解析し、{material ? materialNames[material] : ''}
             での描画難易度を判定しました
           </p>
         </div>
@@ -203,16 +216,17 @@ function AnalysisPageContent() {
             </h2>
             <div className="relative w-full max-w-md mx-auto">
               <Image
-                src={imageUrl || ""}
+                src={selectedFile ? URL.createObjectURL(selectedFile) : ""}
                 alt="解析対象の画像"
                 width={400}
                 height={300}
                 className="w-full rounded-lg shadow-md"
+                unoptimized
               />
             </div>
             <div className="mt-4 text-center">
               <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                {materialNames[material]}
+                {material ? materialNames[material] : ""}
               </span>
             </div>
           </div>
