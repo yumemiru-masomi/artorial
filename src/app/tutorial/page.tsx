@@ -43,43 +43,26 @@ function TutorialPageContent() {
 
   useEffect(() => {
     // セッションストレージからデータを取得
-    const storedData = sessionStorage.getItem(TUTORIAL_DATA_KEY);
-    if (storedData) {
-      try {
-        const data: TutorialData = JSON.parse(storedData);
-        setTutorialData(data);
-        generateSteps(data);
-        return;
-      } catch (error) {
-        console.error(
-          "Failed to parse tutorial data from session storage:",
-          error
-        );
-      }
-    }
+    const fileData = sessionStorage.getItem("selectedFile");
+    const materialData = sessionStorage.getItem("selectedMaterial");
+    const analysisResultData = sessionStorage.getItem("analysisResult");
 
-    // フォールバック：URLパラメータから取得
-    const imageUrl = searchParams.get("image");
-    const material = searchParams.get("material") as Material;
-    const analysisResultStr = searchParams.get("analysis");
-
-    if (!imageUrl || !material || !analysisResultStr) {
+    if (!fileData || !materialData || !analysisResultData) {
       router.push("/");
       return;
     }
 
     try {
-      const analysisResult: ImageAnalysisResponse =
-        JSON.parse(analysisResultStr);
+      const analysisResult: ImageAnalysisResponse = JSON.parse(analysisResultData);
       const data: TutorialData = {
-        imageUrl,
-        material,
+        imageUrl: fileData, // Base64 data URL
+        material: materialData as Material,
         analysisResult,
       };
       setTutorialData(data);
       generateSteps(data);
     } catch (error) {
-      console.error("Failed to parse analysis result:", error);
+      console.error("Failed to parse tutorial data from session storage:", error);
       router.push("/");
     }
   }, [router, searchParams]);
@@ -89,19 +72,30 @@ function TutorialPageContent() {
     setError(null);
 
     try {
-      const response = await fetch("/api/generate-steps", {
+      // セッションストレージから画像ファイルを取得
+      const fileData = sessionStorage.getItem("selectedFile");
+      if (!fileData) {
+        setError("画像ファイルが見つかりません。");
+        return;
+      }
+
+      // Base64からBlobに変換
+      const response = await fetch(fileData);
+      const blob = await response.blob();
+      const file = new File([blob], "image.jpg", { type: blob.type });
+
+      // FormDataを作成
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("material", data.material);
+      formData.append("analysisResult", JSON.stringify(data.analysisResult));
+
+      const apiResponse = await fetch("/api/generate-steps", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageUrl: data.imageUrl,
-          material: data.material,
-          analysisResult: data.analysisResult,
-        }),
+        body: formData,
       });
 
-      const result: ApiResponse<StepGenerationResponse> = await response.json();
+      const result: ApiResponse<StepGenerationResponse> = await apiResponse.json();
 
       if (result.success && result.data) {
         setStepsData(result.data);

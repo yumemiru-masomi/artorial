@@ -12,26 +12,31 @@ const VALID_MATERIALS: Material[] = [
   // 'pencil', 'watercolor', 'colored-pencil',
   "acrylic",
 ];
-const GENERATION_TIMEOUT = 45000; // 45秒
+const GENERATION_TIMEOUT = 30000; // 30秒
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = await request.json();
-    const { imageUrl, material, analysisResult } = body;
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const material = formData.get("material") as string;
+    const analysisResultStr = formData.get("analysisResult") as string;
+    const analysisResult = analysisResultStr
+      ? JSON.parse(analysisResultStr)
+      : null;
 
     // バリデーション
-    if (!imageUrl || typeof imageUrl !== "string") {
+    if (!file) {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
           code: "VALIDATION_ERROR",
-          message: "画像URLが指定されていません。",
+          message: "画像ファイルが指定されていません。",
         },
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    if (!material || !VALID_MATERIALS.includes(material)) {
+    if (!material || !VALID_MATERIALS.includes(material as Material)) {
       const errorResponse: ApiResponse<null> = {
         success: false,
         error: {
@@ -67,10 +72,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const geminiService = new GeminiService();
 
-    // タイムアウト付きで手順生成実行
-    const generationPromise = geminiService.generateSteps(
-      imageUrl,
-      material,
+    // タイムアウト付きで手順生成実行（画像を再送信せずに解析結果のみ使用）
+    const generationPromise = geminiService.generateStepsFromAnalysis(
+      material as Material,
       analysisResult as ImageAnalysisResponse
     );
     const timeoutPromise = new Promise<never>((_, reject) => {
