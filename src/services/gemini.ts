@@ -39,10 +39,8 @@ export class GeminiService {
 {
   "difficulty": "beginner"|"intermediate"|"advanced",
   "complexity": 1-10,
-  "subjects": ["被写体"],
   "estimatedTime": 分,
-  "reasoning": "理由",
-  "confidence": 0-1
+  "reasoning": "理由"
 }`;
 
       const result = await this.model.generateContent([
@@ -106,10 +104,8 @@ export class GeminiService {
         return {
           difficulty: "intermediate",
           complexity: 5,
-          subjects: ["画像内容"],
           estimatedTime: 90,
           reasoning: "分析データが不完全でした",
-          confidence: 0.5,
         };
       }
 
@@ -123,7 +119,7 @@ export class GeminiService {
 
   async generateStepsFromAnalysis(
     material: Material,
-    analysisResult: ImageAnalysisResponse
+    _analysisResult: ImageAnalysisResponse
   ): Promise<StepGenerationResponse> {
     try {
       const materialPrompts = {

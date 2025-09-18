@@ -80,7 +80,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // 解析結果の検証
       if (
         !analysisResult.difficulty ||
-        !analysisResult.subjects ||
         typeof analysisResult.complexity !== "number"
       ) {
         throw new Error("Invalid analysis result");
@@ -91,13 +90,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         data: {
           difficulty: analysisResult.difficulty,
           complexity: Math.max(1, Math.min(10, analysisResult.complexity)), // 1-10の範囲に制限
-          subjects: analysisResult.subjects,
           estimatedTime: Math.max(30, analysisResult.estimatedTime || 60), // 最低30分
           reasoning: analysisResult.reasoning || "分析が完了しました。",
-          confidence: Math.max(
-            0,
-            Math.min(1, analysisResult.confidence || 0.8)
-          ), // 0-1の範囲に制限
         },
       };
 

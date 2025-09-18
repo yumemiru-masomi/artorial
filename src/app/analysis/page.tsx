@@ -203,7 +203,7 @@ function AnalysisPageContent() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">解析結果</h1>
           <p className="text-gray-600">
-            AI が画像を解析し、{material ? materialNames[material] : ''}
+            AI が画像を解析し、{material ? materialNames[material] : ""}
             での描画難易度を判定しました
           </p>
         </div>
@@ -284,39 +284,6 @@ function AnalysisPageContent() {
                   <Clock className="w-4 h-4 mr-1" />
                   <span>{analysisResult.estimatedTime}分</span>
                 </div>
-              </div>
-            </div>
-
-            {/* 被写体 */}
-            <div className="mb-6">
-              <div className="mb-2">
-                <span className="text-gray-700">主な被写体</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {analysisResult.subjects.map((subject, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
-                  >
-                    {subject}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* 信頼度 */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-700">解析精度</span>
-                <span className="text-gray-600">
-                  {Math.round(analysisResult.confidence * 100)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${analysisResult.confidence * 100}%` }}
-                ></div>
               </div>
             </div>
           </div>

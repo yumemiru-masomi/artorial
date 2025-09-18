@@ -53,7 +53,8 @@ function TutorialPageContent() {
     }
 
     try {
-      const analysisResult: ImageAnalysisResponse = JSON.parse(analysisResultData);
+      const analysisResult: ImageAnalysisResponse =
+        JSON.parse(analysisResultData);
       const data: TutorialData = {
         imageUrl: fileData, // Base64 data URL
         material: materialData as Material,
@@ -62,7 +63,10 @@ function TutorialPageContent() {
       setTutorialData(data);
       generateSteps(data);
     } catch (error) {
-      console.error("Failed to parse tutorial data from session storage:", error);
+      console.error(
+        "Failed to parse tutorial data from session storage:",
+        error
+      );
       router.push("/");
     }
   }, [router, searchParams]);
@@ -95,7 +99,8 @@ function TutorialPageContent() {
         body: formData,
       });
 
-      const result: ApiResponse<StepGenerationResponse> = await apiResponse.json();
+      const result: ApiResponse<StepGenerationResponse> =
+        await apiResponse.json();
 
       if (result.success && result.data) {
         setStepsData(result.data);
@@ -277,12 +282,6 @@ function TutorialPageContent() {
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               新しい画像で始める
-            </button>
-            <button
-              onClick={() => setIsCompleted(false)}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              手順を見直す
             </button>
           </div>
         </div>

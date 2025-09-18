@@ -157,7 +157,7 @@ export default function ImageUpload({
             src={preview}
             alt="プレビュー画像"
             fill
-            className="object-cover"
+            className="object-contain"
             unoptimized
           />
           {!disabled && (

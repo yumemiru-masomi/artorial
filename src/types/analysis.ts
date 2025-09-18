@@ -1,4 +1,4 @@
-import { DifficultyLevel } from './tutorial';
+import { DifficultyLevel } from "./tutorial";
 
 export interface ImageAnalysisRequest {
   imageUrl: string;
@@ -8,10 +8,8 @@ export interface ImageAnalysisRequest {
 export interface ImageAnalysisResponse {
   difficulty: DifficultyLevel;
   complexity: number;
-  subjects: string[];
   estimatedTime: number;
   reasoning: string;
-  confidence: number;
 }
 
 export interface StepGenerationRequest {
