@@ -69,9 +69,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new Error("GEMINI_API_KEY is not configured");
     }
 
-    // Gemini Image Serviceで画像生成
-    const { GeminiImageService } = await import("@/services/gemini-image");
-    const geminiImageService = new GeminiImageService();
+    // Gemini Image Serviceで画像生成（シングルトンインスタンス使用）
+    const { geminiImageService } = await import("@/services/gemini-image");
     const generatedImageBuffer = await geminiImageService.generateStepImage(
       inputBuffer,
       prompt,
@@ -94,15 +93,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.error("Generate step image API error:", error);
 
+    let errorMessage = "ステップ画像の生成に失敗しました。";
+    let errorCode = "GENERATION_ERROR";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      if (error.message === "TIMEOUT") {
+        errorMessage =
+          "画像生成に時間がかかりすぎています。しばらく待ってから再試行してください。";
+        errorCode = "TIMEOUT_ERROR";
+        statusCode = 408;
+      } else if (error.message.includes("GEMINI_API_KEY")) {
+        errorMessage = "AI画像生成サービスが設定されていません。";
+        errorCode = "SERVICE_ERROR";
+      } else if (
+        error.message.includes("quota") ||
+        error.message.includes("limit")
+      ) {
+        errorMessage =
+          "AI画像生成サービスの利用制限に達しました。しばらく待ってから再試行してください。";
+        errorCode = "QUOTA_ERROR";
+        statusCode = 429;
+      }
+    }
+
     const errorResponse: ApiResponse<null> = {
       success: false,
       error: {
-        code: "GENERATION_ERROR",
-        message: "ステップ画像の生成に失敗しました。",
+        code: errorCode,
+        message: errorMessage,
       },
     };
 
-    return NextResponse.json(errorResponse, { status: 500 });
+    return NextResponse.json(errorResponse, { status: statusCode });
   }
 }
 

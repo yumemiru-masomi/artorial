@@ -2,11 +2,36 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Material } from "@/types/tutorial";
 import { GeneratedImages } from "@/types/image-generation";
 
+interface GenerativeModel {
+  generateContent(
+    parts: Array<{ inlineData: { mimeType: string; data: string } } | string>
+  ): Promise<{
+    response: {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{
+            inlineData?: { mimeType?: string; data: string };
+            text?: string;
+          }>;
+        };
+      }>;
+    };
+  }>;
+}
+
 export class GeminiImageService {
   private genAI?: GoogleGenerativeAI;
-  private model?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  private model?: GenerativeModel;
+  private isInitialized = false;
 
   constructor() {
+    // 遅延初期化パターンを採用
+    this.initializeIfNeeded();
+  }
+
+  private initializeIfNeeded(): void {
+    if (this.isInitialized) return;
+
     // ビルド時は環境変数チェックをスキップ
     if (process.env.NODE_ENV === "production" && !process.env.GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY is not configured");
@@ -18,6 +43,7 @@ export class GeminiImageService {
       this.model = this.genAI.getGenerativeModel({
         model: process.env.IMAGE_MODEL_ID ?? "gemini-2.5-flash-image-preview", // 画像生成専用モデル
       });
+      this.isInitialized = true;
     }
   }
 
@@ -29,6 +55,7 @@ export class GeminiImageService {
     material: Material,
     textureStrength: number = 40
   ): Promise<GeneratedImages> {
+    this.initializeIfNeeded();
     if (!this.genAI || !this.model) {
       throw new Error("GEMINI_API_KEY is not configured");
     }
@@ -91,7 +118,7 @@ Generate a line art version of this image.`;
   private async generateFlatColor(
     base64Image: string,
     material: Material,
-    textureStrength: number
+    _textureStrength: number
   ): Promise<Buffer> {
     const materialTextures = {
       watercolor: `watercolor texture with soft paper grain`,
@@ -119,7 +146,7 @@ Generate a flat color version of this image.`;
   private async generateHighlight(
     base64Image: string,
     material: Material,
-    textureStrength: number
+    _textureStrength: number
   ): Promise<Buffer> {
     const materialHighlights = {
       watercolor: `抜き（リフト）やにじみ境界を控えめに。`,
@@ -147,7 +174,7 @@ Generate a highlight layer from this image.`;
   private async generatePaintedSample(
     base64Image: string,
     material: Material,
-    textureStrength: number
+    _textureStrength: number
   ): Promise<Buffer> {
     const materialStyles = {
       watercolor: `透明感、重ね（グレーズ）、にじみ、紙目。`,
@@ -185,6 +212,10 @@ Generate a finished painting version of this image.`;
       console.log("- Prompt length:", prompt.length);
 
       // Gemini 2.5 Flash Image Previewで画像生成を実行
+      if (!this.model) {
+        throw new Error("Model is not initialized");
+      }
+
       const result = await this.model.generateContent([
         {
           inlineData: {
@@ -209,9 +240,9 @@ Generate a finished painting version of this image.`;
 
       // レスポンスから生成された画像を抽出
       const candidates = response.candidates;
-      if (candidates && candidates.length > 0) {
-        const parts = candidates[0].content?.parts;
-        if (parts) {
+      if (candidates && candidates.length > 0 && candidates[0].content) {
+        const parts = candidates[0].content.parts;
+        if (parts && parts.length > 0) {
           for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
             console.log(`- Part ${i}:`, {
@@ -268,6 +299,11 @@ Generate a finished painting version of this image.`;
     prompt: string,
     previousStepImageUrl?: string
   ): Promise<Buffer> {
+    this.initializeIfNeeded();
+    if (!this.genAI || !this.model) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+
     const base64Image = imageBuffer.toString("base64");
 
     // For steps that require multiple images (flat color, highlights, shadows)

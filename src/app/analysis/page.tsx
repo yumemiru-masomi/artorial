@@ -48,28 +48,38 @@ function AnalysisPageContent() {
   }, [selectedFile, material]);
 
   useEffect(() => {
-    // sessionStorageからデータを取得
-    const fileData = sessionStorage.getItem("selectedFile");
-    const materialData = sessionStorage.getItem("selectedMaterial");
-    const textureData = sessionStorage.getItem("textureStrength");
+    const loadSessionData = async () => {
+      try {
+        // 型安全なセッション管理を使用
+        const { loadImageAnalysisSession } = await import(
+          "@/lib/session-storage"
+        );
+        const sessionData = loadImageAnalysisSession();
 
-    if (!fileData || !materialData) {
-      router.push("/");
-      return;
-    }
+        if (!sessionData.selectedFile || !sessionData.selectedMaterial) {
+          router.push("/");
+          return;
+        }
 
-    // Base64からFileオブジェクトを復元
-    fetch(fileData)
-      .then((res) => res.blob())
-      .then((blob) => {
+        // Base64からFileオブジェクトを復元
+        const response = await fetch(sessionData.selectedFile);
+        const blob = await response.blob();
         const file = new File([blob], "image.jpg", { type: blob.type });
+
         setSelectedFile(file);
-        setMaterial(materialData as Material);
-        setTextureStrength(textureData ? parseInt(textureData, 10) : 40);
-      })
-      .catch(() => {
+        setMaterial(sessionData.selectedMaterial as Material);
+        setTextureStrength(
+          sessionData.textureStrength
+            ? parseInt(sessionData.textureStrength, 10)
+            : 40
+        );
+      } catch (error) {
+        console.error("Failed to load session data:", error);
         router.push("/");
-      });
+      }
+    };
+
+    loadSessionData();
   }, [router]);
 
   useEffect(() => {

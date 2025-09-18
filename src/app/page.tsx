@@ -30,19 +30,24 @@ export default function Home() {
     reset();
   };
 
-  const handleStartAnalysis = () => {
+  const handleStartAnalysis = async () => {
     if (selectedFile && selectedMaterial) {
-      // ファイルをsessionStorageに一時保存（Base64形式）
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.result) {
-          sessionStorage.setItem("selectedFile", reader.result as string);
-          sessionStorage.setItem("selectedMaterial", selectedMaterial);
-          sessionStorage.setItem("textureStrength", textureStrength.toString());
-          router.push("/analysis");
-        }
-      };
-      reader.readAsDataURL(selectedFile);
+      try {
+        // 型安全なセッション管理を使用
+        const { saveImageAnalysisSession } = await import(
+          "@/lib/session-storage"
+        );
+        await saveImageAnalysisSession(
+          selectedFile,
+          selectedMaterial,
+          textureStrength
+        );
+        router.push("/analysis");
+      } catch (error) {
+        console.error("Failed to save session data:", error);
+        // エラー時はフォールバック処理を実行
+        alert("データの保存に失敗しました。再試行してください。");
+      }
     }
   };
 

@@ -9,12 +9,13 @@ import {
   Loader2,
   Palette,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, memo } from "react";
 import { GeneratedStep } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ColorPalette as ColorPaletteType } from "@/types/color-palette";
 import Image from "next/image";
 import ColorPalette from "./ColorPalette";
+import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
 
 interface StepGuideProps {
   step: GeneratedStep;
@@ -30,7 +31,7 @@ interface StepGuideProps {
   allSteps: GeneratedStep[]; // 全ステップの情報
 }
 
-export default function StepGuide({
+const StepGuide = memo(function StepGuide({
   step,
   currentStepNumber,
   totalSteps,
@@ -43,90 +44,17 @@ export default function StepGuide({
   isLastStep,
   allSteps,
 }: StepGuideProps) {
-  const [stepImages, setStepImages] = useState<(string | null)[]>([]);
-  const [loading, setLoading] = useState(false);
   const [nextStepReady, setNextStepReady] = useState(false);
   const [showColorPalette, setShowColorPalette] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  // 画像生成進捗表示を削除
 
-  // ステップ画像を生成する関数
-  const generateStepImage = useCallback(
-    async (stepIndex: number): Promise<string | null> => {
-      try {
-        const targetStep = allSteps[stepIndex];
-        if (!targetStep) return null;
-
-        // 生成状態をコンソールログのみに
-
-        const response = await fetch("/api/generate-step-image", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            originalImageUrl,
-            stepNumber: stepIndex + 1,
-            stepDescription: targetStep.description,
-            material,
-            previousStepImageUrl: stepImages[stepIndex - 1] || null,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (data.success) {
-          // 生成完了をコンソールログのみに
-          return data.data.imageUrl;
-        } else {
-          throw new Error(data.error?.message || "Failed to generate image");
-        }
-      } catch (error) {
-        console.error(`Error generating step ${stepIndex + 1} image:`, error);
-        // エラー状態をコンソールログのみに
-        return null;
-      }
-    },
-    [allSteps, originalImageUrl, material, stepImages]
-  );
-
-  // 現在のステップの画像のみを生成する関数（コスト削減）
-  const generateCurrentStepImageOnly = useCallback(async () => {
-    const currentIndex = currentStepNumber - 1;
-
-    // 既に生成済みの場合はスキップ
-    if (stepImages[currentIndex]) {
-      console.log(
-        `✅ ステップ${currentIndex + 1}の画像は既に生成済み - スキップ`
-      );
-      return;
-    }
-
-    console.log(`📸 ステップ${currentIndex + 1}の画像を生成中...`);
-
-    try {
-      setLoading(true);
-      const currentImageUrl = await generateStepImage(currentIndex);
-
-      if (currentImageUrl) {
-        setStepImages((prev) => {
-          const newArray = [...prev];
-          newArray[currentIndex] = currentImageUrl;
-          return newArray;
-        });
-        console.log(`✅ ステップ${currentIndex + 1}の画像生成完了`);
-      } else {
-        console.warn(`⚠️ ステップ${currentIndex + 1}の画像生成に失敗`);
-      }
-    } catch (error) {
-      console.error(`❌ ステップ${currentIndex + 1}の画像生成エラー:`, error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentStepNumber, stepImages, generateStepImage]);
+  // 画像生成ロジックをカスタムフックに分離
+  const { stepImages, loading, generateCurrentStepImage, getCurrentStepImage } =
+    useStepImageGeneration({
+      allSteps,
+      originalImageUrl,
+      material,
+    });
 
   // 初回ロード時に現在のステップの画像のみ生成（コスト削減）
   useEffect(() => {
@@ -139,8 +67,8 @@ export default function StepGuide({
     }
 
     // 現在のステップの画像のみ生成
-    generateCurrentStepImageOnly();
-  }, [currentStepNumber, originalImageUrl, material]);
+    generateCurrentStepImage(currentIndex);
+  }, [currentStepNumber, stepImages, generateCurrentStepImage]);
 
   // 生成進捗を監視して次へボタンの状態を更新
   useEffect(() => {
@@ -178,12 +106,6 @@ export default function StepGuide({
 
   const handleCompletionCancel = () => {
     setShowCompletionModal(false);
-  };
-
-  // 現在のステップの画像を取得
-  const getCurrentStepImage = () => {
-    const currentIndex = currentStepNumber - 1;
-    return stepImages[currentIndex] || originalImageUrl;
   };
 
   // 生成進捗表示を削除
@@ -249,7 +171,7 @@ export default function StepGuide({
                   </div>
                 ) : (
                   <Image
-                    src={getCurrentStepImage()}
+                    src={getCurrentStepImage(currentStepNumber)}
                     alt={`ステップ${currentStepNumber}: ${step.title}`}
                     width={400}
                     height={400}
@@ -410,4 +332,6 @@ export default function StepGuide({
       )}
     </>
   );
-}
+});
+
+export default StepGuide;

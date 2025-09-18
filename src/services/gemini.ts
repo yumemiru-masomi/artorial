@@ -119,7 +119,7 @@ export class GeminiService {
 
   async generateStepsFromAnalysis(
     material: Material,
-    _analysisResult: ImageAnalysisResponse
+    analysisResult: ImageAnalysisResponse
   ): Promise<StepGenerationResponse> {
     try {
       const materialPrompts = {
