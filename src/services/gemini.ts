@@ -123,33 +123,6 @@ export class GeminiService {
   ): Promise<StepGenerationResponse> {
     try {
       const materialPrompts = {
-        // TODO: 今後追加予定の画材
-        // pencil: {
-        //   name: "デッサン（鉛筆）",
-        //   steps: ["下書き", "輪郭線", "基本陰影", "詳細陰影", "仕上げ"],
-        //   techniques: ["線の強弱", "陰影表現", "立体感", "質感表現"],
-        // },
-        // watercolor: {
-        //   name: "水彩画",
-        //   steps: [
-        //     "下書き",
-        //     "薄塗り（第一層）",
-        //     "中間色（第二層）",
-        //     "濃い色（第三層）",
-        //     "仕上げ",
-        //   ],
-        //   techniques: [
-        //     "水分コントロール",
-        //     "グラデーション",
-        //     "色の重ね",
-        //     "乾燥タイミング",
-        //   ],
-        // },
-        // "colored-pencil": {
-        //   name: "色鉛筆",
-        //   steps: ["下書き", "基本色塗り", "色の重ね", "細部描写", "仕上げ"],
-        //   techniques: ["重ね塗り", "色の混合", "圧力調整", "質感表現"],
-        // },
         acrylic: {
           name: "アクリル絵の具",
           steps: [

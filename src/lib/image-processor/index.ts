@@ -99,73 +99,16 @@ export class ImageProcessor {
     totalSteps: number
   ): Promise<Buffer> {
     try {
-
-      switch (material) {
-        case "pencil": // デッサン
-          if (stepNumber === 1) {
-            // 下書き段階: 線画
-            return this.createLineArt(inputBuffer);
-          } else if (stepNumber <= Math.ceil(totalSteps * 0.6)) {
-            // 輪郭・基本陰影段階: グレースケール
-            return this.createShadingGuide(inputBuffer);
-          } else {
-            // 詳細陰影・仕上げ段階: より詳細なグレースケール
-            return sharp(inputBuffer)
-              .grayscale()
-              .gamma(0.9)
-              .resize(800, 600, { fit: "inside", withoutEnlargement: true })
-              .jpeg({ quality: 90 })
-              .toBuffer();
-          }
-
-        case "watercolor": // 水彩画
-          if (stepNumber === 1) {
-            // 下書き段階: 薄い線画
-            return this.createLineArt(inputBuffer);
-          } else if (stepNumber === 2) {
-            // 薄塗り段階: 非常に薄い色
-            return this.createColorGuide(inputBuffer, 0.3);
-          } else if (stepNumber <= Math.ceil(totalSteps * 0.7)) {
-            // 中間色段階: 中程度の彩度
-            return this.createColorGuide(inputBuffer, 0.6);
-          } else {
-            // 濃い色・仕上げ段階: 通常の彩度
-            return this.createColorGuide(inputBuffer, 0.9);
-          }
-
-        case "colored-pencil": // 色鉛筆
-          if (stepNumber === 1) {
-            // 下書き段階: 線画
-            return this.createLineArt(inputBuffer);
-          } else if (stepNumber <= Math.ceil(totalSteps * 0.4)) {
-            // 基本色塗り段階: 薄めの色
-            return this.createColorGuide(inputBuffer, 0.5);
-          } else if (stepNumber <= Math.ceil(totalSteps * 0.8)) {
-            // 色の重ね段階: 中程度の色
-            return this.createColorGuide(inputBuffer, 0.8);
-          } else {
-            // 細部描写・仕上げ段階: 濃い色
-            return this.createColorGuide(inputBuffer, 1.0);
-          }
-
-        case "acrylic": // アクリル絵の具（アニメ調処理）
-          if (stepNumber === 1) {
-            // ステップ1: 高品質線画
-            return this.animeProcessor.createCleanLineArt(inputBuffer);
-          } else if (stepNumber === 2) {
-            // ステップ2: ベタ塗り
-            return this.animeProcessor.createFlatColors(inputBuffer);
-          } else {
-            // ステップ3以降: ハイライト・陰影
-            return this.animeProcessor.createHighlights(inputBuffer);
-          }
-
-        default:
-          // デフォルト: 元画像をリサイズのみ
-          return sharp(inputBuffer)
-            .resize(800, 600, { fit: "inside", withoutEnlargement: true })
-            .jpeg({ quality: 85 })
-            .toBuffer();
+      // アクリル絵の具（アニメ調処理）
+      if (stepNumber === 1) {
+        // ステップ1: 高品質線画
+        return this.animeProcessor.createCleanLineArt(inputBuffer);
+      } else if (stepNumber === 2) {
+        // ステップ2: ベタ塗り
+        return this.animeProcessor.createFlatColors(inputBuffer);
+      } else {
+        // ステップ3以降: ハイライト・陰影
+        return this.animeProcessor.createHighlights(inputBuffer);
       }
     } catch (error) {
       console.error("Reference image generation error:", error);

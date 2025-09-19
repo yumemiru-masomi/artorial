@@ -1,6 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Material } from "@/types/tutorial";
-import { GeneratedImages } from "@/types/image-generation";
 
 interface GenerativeModel {
   generateContent(
@@ -45,155 +43,6 @@ export class GeminiImageService {
       });
       this.isInitialized = true;
     }
-  }
-
-  /**
-   * Generate all 4 variations of the image in parallel
-   */
-  async generateAllVariations(
-    imageBuffer: Buffer,
-    material: Material,
-    textureStrength: number = 40
-  ): Promise<GeneratedImages> {
-    this.initializeIfNeeded();
-    if (!this.genAI || !this.model) {
-      throw new Error("GEMINI_API_KEY is not configured");
-    }
-
-    const base64Image = imageBuffer.toString("base64");
-
-    try {
-      const [lineArt, flatColor, highlight, paintedSample] =
-        await Promise.allSettled([
-          this.generateLineArt(base64Image),
-          this.generateFlatColor(base64Image, material, textureStrength),
-          this.generateHighlight(base64Image, material, textureStrength),
-          this.generatePaintedSample(base64Image, material, textureStrength),
-        ]);
-
-      return {
-        lineArt: lineArt.status === "fulfilled" ? lineArt.value : imageBuffer,
-        flatColor:
-          flatColor.status === "fulfilled" ? flatColor.value : imageBuffer,
-        highlight:
-          highlight.status === "fulfilled" ? highlight.value : imageBuffer,
-        paintedSample:
-          paintedSample.status === "fulfilled"
-            ? paintedSample.value
-            : imageBuffer,
-      };
-    } catch (error) {
-      console.error("Error generating image variations:", error);
-      // Fallback to original image for all variations
-      return {
-        lineArt: imageBuffer,
-        flatColor: imageBuffer,
-        highlight: imageBuffer,
-        paintedSample: imageBuffer,
-      };
-    }
-  }
-
-  /**
-   * Generate line art - white background with black lines only
-   */
-  private async generateLineArt(base64Image: string): Promise<Buffer> {
-    const prompt = `Convert this image to clean line art:
-- Extract only the main outlines and contours
-- Create black lines on white background
-- Remove all colors, gradients, and shading
-- Maintain the character's shape and pose
-- Use clean, bold line weights
-- Anime/manga style line art
-- High contrast black and white only
-
-Generate a line art version of this image.`;
-
-    return this.callGeminiAPI(base64Image, prompt);
-  }
-
-  /**
-   * Generate flat color version with basic material texture
-   */
-  private async generateFlatColor(
-    base64Image: string,
-    material: Material,
-    _textureStrength: number
-  ): Promise<Buffer> {
-    const materialTextures = {
-      watercolor: `watercolor texture with soft paper grain`,
-      acrylic: `thick acrylic paint texture with brush strokes`,
-      "colored-pencil": `colored pencil texture with paper grain and light hatching`,
-      pencil: `pencil shading with graphite gradations`,
-    };
-
-    const prompt = `Convert this image to flat color style with ${material} medium:
-- Apply flat, solid colors without gradients
-- Add ${materialTextures[material] || "smooth texture"}
-- Maintain the character's shape and pose
-- Use cel-shading anime style
-- Add thin black outlines around shapes
-- Apply ${material} artistic medium characteristics
-
-Generate a flat color version of this image.`;
-
-    return this.callGeminiAPI(base64Image, prompt);
-  }
-
-  /**
-   * Generate highlight layer - transparent PNG with white highlights only
-   */
-  private async generateHighlight(
-    base64Image: string,
-    material: Material,
-    _textureStrength: number
-  ): Promise<Buffer> {
-    const materialHighlights = {
-      watercolor: `抜き（リフト）やにじみ境界を控えめに。`,
-      acrylic: `厚塗りの艶ハイライト（微細な筆跡反射）を控えめに。`,
-      "colored-pencil": `白鉛筆の点描・紙目に沿うタッチを控えめに。`,
-      pencil: `紙の白い部分と光の反射による自然なハイライト。`,
-    };
-
-    const prompt = `Extract highlight effects from this image with ${material} medium:
-- Create white highlights only on transparent background
-- Extract the brightest areas and light reflections
-- Apply ${materialHighlights[material] || "smooth highlights"}
-- Maintain the character's shape and pose
-- Output as transparent PNG format
-- Soft, natural highlight placement
-
-Generate a highlight layer from this image.`;
-
-    return this.callGeminiAPI(base64Image, prompt);
-  }
-
-  /**
-   * Generate painted sample with strong material texture
-   */
-  private async generatePaintedSample(
-    base64Image: string,
-    material: Material,
-    _textureStrength: number
-  ): Promise<Buffer> {
-    const materialStyles = {
-      watercolor: `透明感、重ね（グレーズ）、にじみ、紙目。`,
-      acrylic: `厚塗り、筆致、やや強い発色、わずかな光沢。`,
-      "colored-pencil": `重ね塗り、ハッチング、紙粒子、柔らかいエッジ。`,
-      pencil: `鉛筆特有の質感、グラデーション、紙の粒子感、濃淡の変化。`,
-    };
-
-    const prompt = `Transform this image into a finished painting with ${material} medium:
-- Apply rich ${materialStyles[material]}
-- Enhance with professional artwork quality
-- Add detailed material-specific textures
-- Maintain the character's shape and pose
-- Use full color range appropriate for ${material}
-- Create museum-quality finished appearance
-
-Generate a finished painting version of this image.`;
-
-    return this.callGeminiAPI(base64Image, prompt);
   }
 
   /**
@@ -291,8 +140,8 @@ Generate a finished painting version of this image.`;
   }
 
   /**
-   * Generate step-specific image based on custom prompt
-   * Supports multiple input images for layered generation
+   * カスタムプロンプトに基づいてステップ固有の画像を生成
+   * レイヤー生成のための複数入力画像をサポート
    */
   async generateStepImage(
     imageBuffer: Buffer,
@@ -306,17 +155,17 @@ Generate a finished painting version of this image.`;
 
     const base64Image = imageBuffer.toString("base64");
 
-    // For steps that require multiple images (flat color, highlights, shadows)
+    // 複数の画像が必要なステップ（平塗り、ハイライト、影）の場合
     if (
       previousStepImageUrl &&
       (prompt.includes("line art") || prompt.includes("flat color"))
     ) {
-      // TODO: Implement multi-image input for Gemini API
-      // For now, use single image approach
+      // TODO: Gemini API用のマルチ画像入力を実装
+      // 現在は単一画像アプローチを使用
       console.log(`🔄 Multi-image input detected for step generation`);
     }
 
-    // Use the original image as primary reference
+    // 元画像を主要な参照として使用
     return this.callGeminiAPI(base64Image, prompt);
   }
 }
