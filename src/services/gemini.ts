@@ -20,7 +20,7 @@ export class GeminiService {
     model: process.env.TEXT_MODEL_ID ?? "gemini-1.5-flash",
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 8192,
     },
   });
 
@@ -183,10 +183,28 @@ export class GeminiService {
       console.log("🎨 画材:", material);
       console.log("📄 MIMEタイプ:", mimeType);
 
-      // 超短縮プロンプト
-      const prompt = `画像分析をJSONで:
-{"difficulty":"intermediate","complexity":5,"estimatedTime":90,"reasoning":"説明","category":"other","categoryDescription":"画像説明","dominantColors":[{"hex":"#FF0000","name":"赤","percentage":30}]}
-上記形式でJSONのみ回答。`;
+      // 日本語対応・動的値生成プロンプト
+      const prompt = `この画像を詳細に分析して、以下のJSON形式で日本語で回答してください：
+
+{
+  "difficulty": "beginner/intermediate/advanced のいずれか（画像の複雑さに応じて選択）",
+  "complexity": "1-10の数値（1=非常に簡単、10=非常に複雑）",
+  "estimatedTime": "30-180の数値（分単位、難易度に応じて変動）",
+  "reasoning": "日本語での詳細な分析理由",
+  "category": "landscape/portrait/character/still_life/abstract/animal/architecture/other",
+  "categoryDescription": "日本語での画像説明",
+  "dominantColors": [
+    {"hex": "#色コード", "name": "色名", "percentage": 割合},
+    // 最大8色まで
+  ]
+}
+
+分析基準：
+- difficulty: シンプルな形状=beginner、中程度=intermediate、複雑な細部=advanced
+- complexity: 色数・形状・細部の複雑さを1-10で評価
+- estimatedTime: difficultyとcomplexityに基づいて30-180分で設定
+- 実際の画像内容を正確に反映した動的な値を設定
+- JSONのみ回答（説明文不要）`;
 
       console.log("📤 API呼び出し実行中...");
 
@@ -222,10 +240,11 @@ export class GeminiService {
           difficulty: "intermediate",
           complexity: 5,
           estimatedTime: 90,
-          reasoning: "トークン制限のため簡易解析を実行しました。",
+          reasoning:
+            "トークン制限のため簡易解析を実行しました。アクリル絵具での描画に適した中級レベルの作品です。",
           category: "other",
           categoryDescription:
-            "画像の種類を特定できませんでしたが、描画に適した内容です。",
+            "画像の種類を特定できませんでしたが、アクリル絵具での描画に適した内容です。",
           dominantColors: actualColors,
         };
       }
@@ -335,6 +354,11 @@ export class GeminiService {
         "other",
       ];
 
+      console.log("🔍 パース結果の詳細:");
+      console.log("  - difficulty:", parsed.difficulty);
+      console.log("  - complexity:", parsed.complexity);
+      console.log("  - estimatedTime:", parsed.estimatedTime);
+
       const validatedData = {
         difficulty: ["beginner", "intermediate", "advanced"].includes(
           parsed.difficulty
@@ -391,9 +415,10 @@ export class GeminiService {
         complexity: 5,
         estimatedTime: 90,
         reasoning:
-          "AI解析でエラーが発生しましたが、画像から基本的な情報を抽出しました。",
+          "AI解析でエラーが発生しましたが、画像から基本的な情報を抽出しました。アクリル絵具での描画に適した作品です。",
         category: "other",
-        categoryDescription: "画像の解析中にエラーが発生しました。",
+        categoryDescription:
+          "画像の解析中にエラーが発生しましたが、アクリル絵具での描画に適した内容です。",
         dominantColors: actualColors,
       };
     }
@@ -416,26 +441,43 @@ export class GeminiService {
       };
 
       // ステップ2以降: Geminiが動的生成（色塗り工程のみ）
-      const coloringPrompt = `この画像をアクリル絵具で色塗りする手順を生成してください。
-線画は既に完了済みなので、色塗り工程のみをJSONで回答してください。
+      const coloringPrompt = `この画像に最適なアクリル絵具の色塗り手順をJSONで生成してください。
 
-難易度: ${analysisResult.difficulty}
-複雑度: ${analysisResult.complexity}/10
+画像の特徴:
+- 難易度: ${analysisResult.difficulty}
+- 複雑度: ${analysisResult.complexity}/10
+- カテゴリ: ${analysisResult.category}
+- 主要色: ${
+        analysisResult.dominantColors?.map((c) => c.name).join("、") || "不明"
+      }
 
-以下の形式で回答:
+**重要: 実際の主要色を使用してください**
+- 背景色が「${
+        analysisResult.dominantColors?.[0]?.name || "不明"
+      }」の場合は、その色を背景塗りで指定
+- 各ステップの説明で具体的な色名を使用（例：「ピンク」「青」「緑」など）
+- 固定的な「ライトブルー」などは使用せず、実際の画像の色を反映
+
+以下の正確なJSON形式で回答してください:
 {
   "coloringSteps": [
-    {"stepNumber": 2, "title": "背景塗り", "description": "背景をアクリル絵具で塗る", "tips": ["薄めに塗る"], "estimatedDuration": 20, "techniques": ["背景塗り"]},
-    {"stepNumber": 3, "title": "主要部分", "description": "メインとなる部分を塗る", "tips": ["色を混ぜながら"], "estimatedDuration": 25, "techniques": ["基本塗り"]},
+    {"stepNumber": 2, "title": "背景塗り", "description": "背景を${
+      analysisResult.dominantColors?.[0]?.name || "主要色"
+    }で塗る", "tips": ["薄めに塗る"], "estimatedDuration": 20, "techniques": ["背景塗り"]},
+    {"stepNumber": 3, "title": "主要部分塗り", "description": "メインとなる部分を実際の色で塗る", "tips": ["色を混ぜながら"], "estimatedDuration": 25, "techniques": ["基本塗り"]},
     {"stepNumber": 4, "title": "仕上げ", "description": "細部を仕上げる", "tips": ["全体バランス確認"], "estimatedDuration": 20, "techniques": ["仕上げ"]}
   ]
 }
 
-要件:
-- stepNumberは2から開始
-- 3-6ステップ（色塗りのみ）
+重要な制約:
+- stepNumberは2から開始し連続番号
+- 3-5ステップ（色塗りのみ）
 - 各ステップ10-45分
-- アクリル絵具の特性を活かした説明`;
+- 実際の画像の主要色を具体的に記載
+- 固定的な色名は使用禁止
+- 配列要素間に必ずカンマを入れる
+- 正確なJSON形式を守る
+- JSONのみ回答（説明文不要）`;
 
       const result = await this.model.generateContent(coloringPrompt);
       const response = await result.response;
@@ -443,17 +485,66 @@ export class GeminiService {
 
       console.log("🎨 色塗りステップ生成レスポンス:", text);
 
-      // JSONパース
+      // 強化されたJSONパース（複数パターン対応）
       let coloringSteps = [];
-      const jsonMatch = text.match(/\{[\s\S]*?\}/);
 
-      if (jsonMatch) {
+      console.log("🔍 色塗りステップJSON解析開始 - レスポンス長:", text.length);
+      console.log("📄 色塗りステップレスポンス内容:", text);
+
+      // パターン1: coloringStepsを含むJSON抽出
+      const coloringJsonMatch = text.match(
+        /\{[^{}]*"coloringSteps"[^{}]*\[[\s\S]*?\][^{}]*\}/
+      );
+      if (coloringJsonMatch) {
         try {
-          const parsed = JSON.parse(jsonMatch[0]);
+          const parsed = JSON.parse(coloringJsonMatch[0]);
           coloringSteps = parsed.coloringSteps || [];
-          console.log("✅ 色塗りステップ解析成功:", coloringSteps);
+          console.log("✅ パターン1成功（coloringSteps特化）:", coloringSteps);
         } catch (e) {
-          console.warn("❌ 色塗りステップ解析失敗:", e);
+          console.warn("❌ パターン1失敗:", e);
+        }
+      }
+
+      // パターン2: 標準的なJSON形式
+      if (coloringSteps.length === 0) {
+        const jsonMatch = text.match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            coloringSteps = parsed.coloringSteps || [];
+            console.log("✅ パターン2成功（標準JSON）:", coloringSteps);
+          } catch (e) {
+            console.warn("❌ パターン2失敗:", e);
+          }
+        }
+      }
+
+      // パターン3: コードブロック内のJSON
+      if (coloringSteps.length === 0) {
+        const codeBlockMatch = text.match(
+          /```(?:json)?\s*(\{[\s\S]*?\})\s*```/
+        );
+        if (codeBlockMatch) {
+          try {
+            const parsed = JSON.parse(codeBlockMatch[1]);
+            coloringSteps = parsed.coloringSteps || [];
+            console.log("✅ パターン3成功（コードブロック）:", coloringSteps);
+          } catch (e) {
+            console.warn("❌ パターン3失敗:", e);
+          }
+        }
+      }
+
+      // パターン4: 配列のみ抽出（coloringSteps部分のみ）
+      if (coloringSteps.length === 0) {
+        const arrayMatch = text.match(/"coloringSteps":\s*(\[[\s\S]*?\])/);
+        if (arrayMatch) {
+          try {
+            coloringSteps = JSON.parse(arrayMatch[1]);
+            console.log("✅ パターン4成功（配列のみ）:", coloringSteps);
+          } catch (e) {
+            console.warn("❌ パターン4失敗:", e);
+          }
         }
       }
 

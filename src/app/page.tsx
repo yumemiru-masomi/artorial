@@ -63,53 +63,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* 進捗インジケーター */}
-        <div className="flex items-center justify-center mb-12">
-          <div className="flex items-center space-x-4">
-            <div
-              className={`flex items-center ${
-                currentStep === "upload"
-                  ? "text-blue-600"
-                  : selectedFile
-                  ? "text-green-600"
-                  : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                  currentStep === "upload"
-                    ? "bg-blue-600"
-                    : selectedFile
-                    ? "bg-green-600"
-                    : "bg-gray-400"
-                }`}
-              >
-                1
-              </div>
-              <span className="ml-2 font-medium">画像アップロード</span>
-            </div>
-            <div
-              className={`w-8 h-0.5 ${
-                selectedFile ? "bg-green-600" : "bg-gray-300"
-              }`}
-            ></div>
-            <div
-              className={`flex items-center ${
-                currentStep === "analysis" ? "text-blue-600" : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                  currentStep === "analysis" ? "bg-blue-600" : "bg-gray-400"
-                }`}
-              >
-                2
-              </div>
-              <span className="ml-2 font-medium">AI解析</span>
-            </div>
-          </div>
-        </div>
-
         {/* メインコンテンツ */}
         <div className="bg-white rounded-lg shadow-sm p-8">
           {currentStep === "upload" && (

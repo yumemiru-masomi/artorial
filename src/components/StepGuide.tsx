@@ -102,8 +102,6 @@ const StepGuide = memo(function StepGuide({
     setShowCompletionModal(false);
   };
 
-  // 生成進捗表示を削除
-
   return (
     <>
       <div className="max-w-6xl mx-auto px-4">

@@ -11,15 +11,12 @@ import {
 } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
-// ImageGenerationResponse削除 - StepGuideで画像生成（コスト削減）
 
 interface TutorialData {
   imageUrl: string;
   material: Material;
   analysisResult: ImageAnalysisResponse;
 }
-
-const TUTORIAL_DATA_KEY = "artorial_tutorial_data";
 
 function TutorialPageContent() {
   const router = useRouter();
@@ -28,7 +25,6 @@ function TutorialPageContent() {
   const [stepsData, setStepsData] = useState<StepGenerationResponse | null>(
     null
   );
-  // generatedImages, isGeneratingImages を削除 - StepGuideで必要時に生成（コスト削減）
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -115,8 +111,6 @@ function TutorialPageContent() {
     }
   };
 
-  // generateImages関数を削除 - StepGuideコンポーネントで必要時に生成（コスト削減）
-
   const handleRetry = () => {
     if (tutorialData) {
       generateSteps(tutorialData);
@@ -146,10 +140,6 @@ function TutorialPageContent() {
   };
 
   const materialNames = {
-    // TODO: 今後追加予定の画材
-    // pencil: "デッサン",
-    // watercolor: "水彩画",
-    // "colored-pencil": "色鉛筆",
     acrylic: "アクリル絵の具",
   };
 
@@ -321,7 +311,6 @@ function TutorialPageContent() {
             </div>
             <div className="text-sm text-gray-600">
               推定時間: {stepsData.totalEstimatedTime}分
-              {/* 画像生成状態表示を削除 - StepGuideで必要時に生成（コスト削減） */}
             </div>
           </div>
         </div>
