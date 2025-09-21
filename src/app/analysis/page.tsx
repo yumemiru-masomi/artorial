@@ -1,11 +1,12 @@
 "use client";
 import Image from "next/image";
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Clock, Star, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
+import ColorPalette from "@/components/ColorPalette";
 
 function AnalysisPageContent() {
   const router = useRouter();
@@ -15,7 +16,6 @@ function AnalysisPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [material, setMaterial] = useState<Material | null>(null);
-  const [textureStrength, setTextureStrength] = useState<number>(40);
 
   const performAnalysis = useCallback(async () => {
     if (!selectedFile || !material) return;
@@ -68,11 +68,6 @@ function AnalysisPageContent() {
 
         setSelectedFile(file);
         setMaterial(sessionData.selectedMaterial as Material);
-        setTextureStrength(
-          sessionData.textureStrength
-            ? parseInt(sessionData.textureStrength, 10)
-            : 40
-        );
       } catch (error) {
         console.error("Failed to load session data:", error);
         router.push("/");
@@ -124,6 +119,20 @@ function AnalysisPageContent() {
     return (
       colors[difficulty as keyof typeof colors] || "text-gray-600 bg-gray-100"
     );
+  };
+
+  const getCategoryLabel = (category: string) => {
+    const labels = {
+      landscape: "風景画",
+      portrait: "人物画",
+      character: "キャラクター画",
+      still_life: "静物画",
+      abstract: "抽象画",
+      animal: "動物画",
+      architecture: "建築物",
+      other: "その他",
+    };
+    return labels[category as keyof typeof labels] || "その他";
   };
 
   const materialNames = {
@@ -296,8 +305,36 @@ function AnalysisPageContent() {
                 </div>
               </div>
             </div>
+
+            {/* 画像種類 */}
+            {analysisResult.category && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-700">画像の種類</span>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    {getCategoryLabel(analysisResult.category)}
+                  </span>
+                </div>
+                {analysisResult.categoryDescription && (
+                  <div className="text-sm text-gray-600">
+                    {analysisResult.categoryDescription}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* カラーパレット */}
+        {analysisResult.dominantColors &&
+          analysisResult.dominantColors.length > 0 && (
+            <div className="mt-8">
+              <ColorPalette
+                colors={analysisResult.dominantColors}
+                title="🎨 この画像で使われている色"
+              />
+            </div>
+          )}
 
         {/* アクションボタン */}
         <div className="mt-8 flex justify-between">

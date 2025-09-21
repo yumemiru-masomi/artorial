@@ -92,6 +92,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           complexity: Math.max(1, Math.min(10, analysisResult.complexity)), // 1-10の範囲に制限
           estimatedTime: Math.max(30, analysisResult.estimatedTime || 60), // 最低30分
           reasoning: analysisResult.reasoning || "分析が完了しました。",
+          category: analysisResult.category,
+          categoryDescription: analysisResult.categoryDescription,
+          dominantColors: analysisResult.dominantColors || [],
         },
       };
 
