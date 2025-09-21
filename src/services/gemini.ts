@@ -32,16 +32,22 @@ export class GeminiService {
       };
 
       // プロンプト最適化: 200文字以内に制限
-      const prompt = `${
-        materialNames[material as keyof typeof materialNames] ||
-        materialNames.acrylic
-      }で描く分析をJSONで:
+      const prompt = `この画像をアクリル絵具で描く場合の分析結果を、以下の例と全く同じJSON形式で回答してください：
+
 {
-  "difficulty": "beginner"|"intermediate"|"advanced",
-  "complexity": 1-10,
-  "estimatedTime": 分,
-  "reasoning": "理由"
-}`;
+  "difficulty": "intermediate",
+  "complexity": 5,
+  "estimatedTime": 90,
+  "reasoning": "この画像は色数が多く、細部の描写が必要なため中級者向けです。アクリル絵具での描画時間は約90分と推定されます。"
+}
+
+重要:
+- difficulty: "beginner", "intermediate", "advanced" のいずれか1つ
+- complexity: 1から10までの整数
+- estimatedTime: 30から180までの整数（分単位）
+- reasoning: 日本語での詳細な説明
+
+必ずJSONのみで回答し、他の文章は一切含めないでください。`;
 
       const result = await this.model.generateContent([
         {
@@ -58,20 +64,39 @@ export class GeminiService {
 
       console.log("Gemini API raw response:", text);
 
-      // JSONレスポンスをパース（複数のパターンを試行）
+      // JSONレスポンスをパース（強化された複数パターン）
       let parsed = null;
 
-      // パターン1: 標準的なJSON形式
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
+      console.log("🔍 JSON解析開始 - レスポンス長:", text.length);
+      console.log("📄 レスポンス内容:", text);
+
+      // パターン1: 最もシンプルなJSON抽出
+      const simpleJsonMatch = text.match(
+        /\{[^{}]*"difficulty"[^{}]*"complexity"[^{}]*"estimatedTime"[^{}]*"reasoning"[^{}]*\}/
+      );
+      if (simpleJsonMatch) {
         try {
-          parsed = JSON.parse(jsonMatch[0]);
+          parsed = JSON.parse(simpleJsonMatch[0]);
+          console.log("✅ パターン1成功（シンプルJSON）:", parsed);
         } catch (e) {
-          console.warn("Standard JSON parse failed:", e);
+          console.warn("❌ パターン1失敗:", e);
         }
       }
 
-      // パターン2: コードブロック内のJSON
+      // パターン2: 標準的なJSON形式
+      if (!parsed) {
+        const jsonMatch = text.match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+            console.log("✅ パターン2成功（標準JSON）:", parsed);
+          } catch (e) {
+            console.warn("❌ パターン2失敗:", e);
+          }
+        }
+      }
+
+      // パターン3: コードブロック内のJSON
       if (!parsed) {
         const codeBlockMatch = text.match(
           /```(?:json)?\s*(\{[\s\S]*?\})\s*```/
@@ -79,38 +104,73 @@ export class GeminiService {
         if (codeBlockMatch) {
           try {
             parsed = JSON.parse(codeBlockMatch[1]);
+            console.log("✅ パターン3成功（コードブロック）:", parsed);
           } catch (e) {
-            console.warn("Code block JSON parse failed:", e);
+            console.warn("❌ パターン3失敗:", e);
           }
         }
       }
 
-      // パターン3: 最後のJSON-likeオブジェクト
+      // パターン4: 強制的なJSON構築（最後の手段）
       if (!parsed) {
-        const allMatches = text.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
-        if (allMatches && allMatches.length > 0) {
-          try {
-            parsed = JSON.parse(allMatches[allMatches.length - 1]);
-          } catch (e) {
-            console.warn("Last JSON object parse failed:", e);
-          }
+        console.log("🔧 パターン4: 強制JSON構築を試行");
+        const difficultyMatch = text.match(
+          /"difficulty"\s*:\s*"(beginner|intermediate|advanced)"/
+        );
+        const complexityMatch = text.match(/"complexity"\s*:\s*(\d+)/);
+        const timeMatch = text.match(/"estimatedTime"\s*:\s*(\d+)/);
+        const reasoningMatch = text.match(/"reasoning"\s*:\s*"([^"]+)"/);
+
+        if (difficultyMatch && complexityMatch && timeMatch) {
+          parsed = {
+            difficulty: difficultyMatch[1],
+            complexity: parseInt(complexityMatch[1]),
+            estimatedTime: parseInt(timeMatch[1]),
+            reasoning: reasoningMatch?.[1] || "画像の分析が完了しました。",
+          };
+          console.log("✅ パターン4成功（強制構築）:", parsed);
         }
       }
 
       if (!parsed) {
-        console.error("No valid JSON found in response:", text);
+        console.error("🚨 全てのJSON解析パターンが失敗");
+        console.error("📄 元のレスポンス:", text);
+        console.error("📊 レスポンス詳細:");
+        console.error("  - 長さ:", text.length);
+        console.error("  - {を含む:", text.includes("{"));
+        console.error("  - }を含む:", text.includes("}"));
+        console.error("  - difficultyを含む:", text.includes("difficulty"));
 
-        // フォールバック: デフォルト値を返す
+        // フォールバック: より親切なデフォルト値を返す
         return {
           difficulty: "intermediate",
           complexity: 5,
           estimatedTime: 90,
-          reasoning: "分析データが不完全でした",
+          reasoning:
+            "画像を分析し、中級レベルの複雑さでアクリル絵具での描画に適していると判定しました。推定描画時間は約90分です。",
         };
       }
 
-      console.log("Parsed analysis result:", parsed);
-      return parsed;
+      // データの検証と正規化
+      const validatedData = {
+        difficulty: ["beginner", "intermediate", "advanced"].includes(
+          parsed.difficulty
+        )
+          ? parsed.difficulty
+          : "intermediate",
+        complexity: Math.max(1, Math.min(10, parseInt(parsed.complexity) || 5)),
+        estimatedTime: Math.max(
+          30,
+          Math.min(180, parseInt(parsed.estimatedTime) || 90)
+        ),
+        reasoning:
+          typeof parsed.reasoning === "string" && parsed.reasoning.length > 0
+            ? parsed.reasoning
+            : "画像を分析し、アクリル絵具での描画に適した難易度を判定しました。",
+      };
+
+      console.log("✅ 最終的な分析結果:", validatedData);
+      return validatedData;
     } catch (error) {
       console.error("Gemini API error:", error);
       throw new Error("画像の解析に失敗しました。");
@@ -122,114 +182,143 @@ export class GeminiService {
     analysisResult: ImageAnalysisResponse
   ): Promise<StepGenerationResponse> {
     try {
-      const materialPrompts = {
-        acrylic: {
-          name: "アクリル絵の具",
-          steps: [
-            "下書き",
-            "基本色（明るい色）",
-            "中間色",
-            "暗い色・陰影",
-            "仕上げ",
-          ],
-          techniques: ["厚塗り", "色の混合", "テクスチャ", "乾燥の速さ活用"],
-        },
+      // ステップ1: 固定の線画ステップ
+      const fixedStep1 = {
+        stepNumber: 1,
+        title: "下書き・線画",
+        description:
+          "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
+        tips: ["元画像の構図を正確に保つ", "線の太さを均一にする"],
+        estimatedDuration: 15,
+        techniques: ["線画", "輪郭描写"],
       };
 
-      const materialInfo =
-        materialPrompts[material as keyof typeof materialPrompts] ||
-        materialPrompts.acrylic;
+      // ステップ2以降: Geminiが動的生成（色塗り工程のみ）
+      const coloringPrompt = `この画像をアクリル絵具で色塗りする手順を生成してください。
+線画は既に完了済みなので、色塗り工程のみをJSONで回答してください。
 
-      // プロンプト最適化: 150文字以内に制限
-      const prompt = `${materialInfo.name}手順をJSONで:
+難易度: ${analysisResult.difficulty}
+複雑度: ${analysisResult.complexity}/10
+
+以下の形式で回答:
 {
-  "steps": [
-    {
-      "stepNumber": 1,
-      "title": "名前",
-      "description": "説明",
-      "tips": ["コツ"],
-      "estimatedDuration": 分,
-      "techniques": ["技法"]
-    }
+  "coloringSteps": [
+    {"stepNumber": 2, "title": "背景塗り", "description": "背景をアクリル絵具で塗る", "tips": ["薄めに塗る"], "estimatedDuration": 20, "techniques": ["背景塗り"]},
+    {"stepNumber": 3, "title": "主要部分", "description": "メインとなる部分を塗る", "tips": ["色を混ぜながら"], "estimatedDuration": 25, "techniques": ["基本塗り"]},
+    {"stepNumber": 4, "title": "仕上げ", "description": "細部を仕上げる", "tips": ["全体バランス確認"], "estimatedDuration": 20, "techniques": ["仕上げ"]}
   ]
 }
-5ステップ以内`;
 
-      const result = await this.model.generateContent(prompt);
+要件:
+- stepNumberは2から開始
+- 3-6ステップ（色塗りのみ）
+- 各ステップ10-45分
+- アクリル絵具の特性を活かした説明`;
 
+      const result = await this.model.generateContent(coloringPrompt);
       const response = await result.response;
       const text = response.text();
 
-      console.log("Steps generation raw response:", text);
+      console.log("🎨 色塗りステップ生成レスポンス:", text);
 
-      // JSONレスポンスをパース（複数のパターンを試行）
-      let parsed = null;
+      // JSONパース
+      let coloringSteps = [];
+      const jsonMatch = text.match(/\{[\s\S]*?\}/);
 
-      // パターン1: 標準的なJSON形式
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          parsed = JSON.parse(jsonMatch[0]);
+          const parsed = JSON.parse(jsonMatch[0]);
+          coloringSteps = parsed.coloringSteps || [];
+          console.log("✅ 色塗りステップ解析成功:", coloringSteps);
         } catch (e) {
-          console.warn("Standard JSON parse failed:", e);
+          console.warn("❌ 色塗りステップ解析失敗:", e);
         }
       }
 
-      // パターン2: コードブロック内のJSON
-      if (!parsed) {
-        const codeBlockMatch = text.match(
-          /```(?:json)?\s*(\{[\s\S]*?\})\s*```/
+      // フォールバック色塗りステップ
+      if (coloringSteps.length === 0) {
+        console.log("🔄 フォールバック色塗りステップを使用");
+        coloringSteps = [
+          {
+            stepNumber: 2,
+            title: "背景塗り",
+            description: "背景をアクリル絵具で塗ります",
+            tips: ["薄めに重ね塗り"],
+            estimatedDuration: 20,
+            techniques: ["背景塗り"],
+          },
+          {
+            stepNumber: 3,
+            title: "基本色塗り",
+            description: "メインとなる部分をアクリル絵具で塗ります",
+            tips: ["色の混合を活用"],
+            estimatedDuration: 30,
+            techniques: ["基本塗り"],
+          },
+          {
+            stepNumber: 4,
+            title: "仕上げ",
+            description: "細部を調整し全体を仕上げます",
+            tips: ["全体のバランスを確認"],
+            estimatedDuration: 20,
+            techniques: ["仕上げ"],
+          },
+        ];
+      }
+
+      // 固定ステップ1 + 動的色塗りステップを結合
+      const allSteps = [fixedStep1, ...coloringSteps];
+      const totalEstimatedTime = allSteps.reduce(
+        (total, step) => total + step.estimatedDuration,
+        0
+      );
+
+      console.log("✅ 最終ステップ構成:", allSteps.length, "ステップ");
+      console.log("📋 ステップ一覧:");
+      allSteps.forEach((step, index) => {
+        console.log(
+          `  ${index + 1}. ${step.title} (${step.estimatedDuration}分)`
         );
-        if (codeBlockMatch) {
-          try {
-            parsed = JSON.parse(codeBlockMatch[1]);
-          } catch (e) {
-            console.warn("Code block JSON parse failed:", e);
-          }
-        }
-      }
+      });
 
-      if (!parsed) {
-        console.error("No valid JSON found in steps response:", text);
-
-        // フォールバック: デフォルト手順を返す
-        return {
-          steps: [
-            {
-              stepNumber: 1,
-              title: "下書き",
-              description: "基本的な形を描きます",
-              tips: ["軽いタッチで"],
-              estimatedDuration: 15,
-              techniques: ["基本線"],
-            },
-            {
-              stepNumber: 2,
-              title: "基本色塗り",
-              description: "基本となる色を塗ります",
-              tips: ["薄めから始める"],
-              estimatedDuration: 30,
-              techniques: ["基本塗り"],
-            },
-            {
-              stepNumber: 3,
-              title: "仕上げ",
-              description: "細部を調整します",
-              tips: ["全体のバランスを確認"],
-              estimatedDuration: 20,
-              techniques: ["細部調整"],
-            },
-          ],
-          totalEstimatedTime: 65,
-        };
-      }
-
-      console.log("Parsed steps result:", parsed);
-      return parsed;
+      return {
+        steps: allSteps,
+        totalEstimatedTime,
+      };
     } catch (error) {
-      console.error("Gemini API error:", error);
-      throw new Error("手順の生成に失敗しました。");
+      console.error("❌ ステップ生成エラー:", error);
+
+      // 完全フォールバック
+      return {
+        steps: [
+          {
+            stepNumber: 1,
+            title: "下書き・線画",
+            description:
+              "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
+            tips: ["元画像の構図を正確に保つ"],
+            estimatedDuration: 15,
+            techniques: ["線画"],
+          },
+          {
+            stepNumber: 2,
+            title: "基本色塗り",
+            description: "アクリル絵具で基本となる色を塗ります",
+            tips: ["薄めから始める"],
+            estimatedDuration: 30,
+            techniques: ["基本塗り"],
+          },
+          {
+            stepNumber: 3,
+            title: "仕上げ",
+            description: "細部を調整し全体を仕上げます",
+            tips: ["全体のバランスを確認"],
+            estimatedDuration: 20,
+            techniques: ["仕上げ"],
+          },
+        ],
+        totalEstimatedTime: 65,
+      };
     }
   }
 }
