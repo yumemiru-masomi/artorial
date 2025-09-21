@@ -7,14 +7,11 @@ import {
   Lightbulb,
   CheckCircle,
   Loader2,
-  Palette,
 } from "lucide-react";
 import { useState, useEffect, memo } from "react";
 import { GeneratedStep } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
-import { ColorPalette as ColorPaletteType } from "@/types/color-palette";
 import Image from "next/image";
-import ColorPalette from "./ColorPalette";
 import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
 
 interface StepGuideProps {
@@ -23,7 +20,6 @@ interface StepGuideProps {
   totalSteps: number;
   onPrevious: () => void;
   onNext: () => void;
-  colorPalette?: ColorPaletteType;
   originalImageUrl: string;
   material: Material;
   isFirstStep: boolean;
@@ -37,7 +33,6 @@ const StepGuide = memo(function StepGuide({
   totalSteps,
   onPrevious,
   onNext,
-  colorPalette,
   originalImageUrl,
   material,
   isFirstStep,
@@ -45,7 +40,6 @@ const StepGuide = memo(function StepGuide({
   allSteps,
 }: StepGuideProps) {
   const [nextStepReady, setNextStepReady] = useState(false);
-  const [showColorPalette, setShowColorPalette] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
   // 画像生成ロジックをカスタムフックに分離
@@ -142,23 +136,6 @@ const StepGuide = memo(function StepGuide({
                 <h3 className="text-lg font-semibold text-gray-900">
                   ステップ {currentStepNumber}: {step.title}
                 </h3>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setShowColorPalette(!showColorPalette)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      showColorPalette
-                        ? "bg-blue-100 text-blue-600"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                    title={
-                      showColorPalette
-                        ? "カラーパレットを非表示"
-                        : "カラーパレットを表示"
-                    }
-                  >
-                    <Palette className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
 
               <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
@@ -179,13 +156,6 @@ const StepGuide = memo(function StepGuide({
                   />
                 )}
               </div>
-
-              {/* カラーパレット */}
-              {showColorPalette && colorPalette && (
-                <div className="mt-6">
-                  <ColorPalette palette={colorPalette} material={material} />
-                </div>
-              )}
             </div>
           </div>
 
@@ -232,23 +202,6 @@ const StepGuide = memo(function StepGuide({
                         </li>
                       ))}
                     </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* 使用技法 */}
-              {step.techniques && step.techniques.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">使用技法</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {step.techniques.map((technique, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
-                      >
-                        {technique}
-                      </span>
-                    ))}
                   </div>
                 </div>
               )}
