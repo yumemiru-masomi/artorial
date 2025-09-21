@@ -562,19 +562,11 @@ export class GeminiService {
           },
           {
             stepNumber: 3,
-            title: "基本色塗り",
+            title: "色塗り",
             description: "メインとなる部分をアクリル絵具で塗ります",
             tips: ["色の混合を活用"],
             estimatedDuration: 30,
             techniques: ["基本塗り"],
-          },
-          {
-            stepNumber: 4,
-            title: "仕上げ",
-            description: "細部を調整し全体を仕上げます",
-            tips: ["全体のバランスを確認"],
-            estimatedDuration: 20,
-            techniques: ["仕上げ"],
           },
         ];
       }
