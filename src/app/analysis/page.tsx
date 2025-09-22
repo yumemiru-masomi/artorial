@@ -222,13 +222,12 @@ function AnalysisPageContent() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               選択された画像
             </h2>
-            <div className="relative w-full max-w-md mx-auto">
+            <div className="relative w-full max-w-md mx-auto aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
               <Image
                 src={selectedFile ? URL.createObjectURL(selectedFile) : ""}
                 alt="解析対象の画像"
-                width={400}
-                height={300}
-                className="w-full rounded-lg shadow-md"
+                fill
+                className="object-contain"
                 unoptimized
               />
             </div>

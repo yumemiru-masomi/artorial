@@ -139,7 +139,7 @@ const StepGuide = memo(function StepGuide({
                 </h3>
               </div>
 
-              <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
+              <div className="relative w-full aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
                 {loading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
@@ -153,7 +153,7 @@ const StepGuide = memo(function StepGuide({
                     alt={`ステップ${currentStepNumber}: ${step.title}`}
                     width={400}
                     height={400}
-                    className="w-full h-full object-cover rounded-lg"
+                    className="w-full h-full object-contain"
                   />
                 )}
               </div>

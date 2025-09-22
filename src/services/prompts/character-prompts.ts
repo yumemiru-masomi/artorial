@@ -33,6 +33,7 @@ export function generateCharacterPromptByType(
 // 各stepType専用のプロンプト関数
 function generateBackgroundPrompt(stepDescription: string): string {
   return `背景のみを塗ってください。キャラクターは白いまま残してください。
+アクリル絵の具の質感で書いてください。
 
 【作業内容】
 ${stepDescription}
@@ -129,23 +130,26 @@ function generateAccessoriesPrompt(stepDescription: string): string {
 
 function generateMainPartPrompt(stepDescription: string): string {
   return `**【超重要】元画像を参照して、肌・服・衣装の部分のみを正確な色で塗ってください**
+アクリル絵の具の質感で書いてください。
 
 この作業は「キャラクター画の肌・服・衣装の複合描写」の工程です：
 
 【実行する手順】
 "${stepDescription}"
 
-**【肌・服・衣装の複合塗り - 背景は塗らない】**
+**【主要部分の複合塗り - 背景も含む】**
+- **背景の部分**：元画像の背景色を詳細に観察し、完全に同じ色で塗る
 - **肌の部分**：元画像の肌色を1ピクセル単位で観察し、完全に同じ色で塗る
 - **服・衣装の部分**：元画像の服の色を観察し、完全に同じ色で服・衣装・靴の部分を塗る
-- **背景は絶対に塗らない**：白いまま残す
-- **髪・小物も塗らない**：白いまま残す
+- **髪の部分**：元画像の髪色を観察し、完全に同じ色で塗る
+- **小物・アクセサリー**：元画像の色を観察し、同じ色で塗る
 
-**重要：肌・服・衣装の色のみを正確に塗り、背景・髪・小物は白いまま残してください。**`;
+**重要：背景・肌・服・髪・小物など主要な全ての部分を元画像と同じ色で正確に塗ってください。**`;
 }
 
 function generateDetailsPrompt(stepDescription: string): string {
   return `**【超重要】元画像を参照して、細部・仕上げを正確に行ってください**
+アクリル絵の具の質感で書いてください。
 
 この作業は「キャラクター画の細部・仕上げ」の工程です：
 

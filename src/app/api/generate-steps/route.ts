@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GeminiService } from "@/services/gemini";
 import { ApiResponse } from "@/types/api";
 import {
   StepGenerationResponse,
@@ -8,7 +7,6 @@ import {
 import { Material } from "@/types/tutorial";
 
 const VALID_MATERIALS: Material[] = ["acrylic"]; //あとで消す
-const GENERATION_TIMEOUT = 30000; // 30秒
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -66,80 +64,44 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(errorResponse, { status: 500 });
     }
 
-    const geminiService = new GeminiService();
+    // 固定ステップを取得
+    console.log(`🎯 固定ステップ生成: カテゴリ=${analysisResult.category}`);
 
-    // タイムアウト付きで手順生成実行（画像を再送信せずに解析結果のみ使用）
-    const generationPromise = geminiService.generateStepsFromAnalysis(
-      material as Material,
-      analysisResult as ImageAnalysisResponse
+    const { getFixedSteps, calculateTotalTime } = await import(
+      "@/services/fixed-steps"
     );
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error("TIMEOUT"));
-      }, GENERATION_TIMEOUT);
-    });
+    const steps = getFixedSteps(analysisResult.category);
+    const totalTime = calculateTotalTime(steps);
 
-    try {
-      const stepsResult = await Promise.race([
-        generationPromise,
-        timeoutPromise,
-      ]);
+    console.log(`📋 固定ステップ一覧:`, steps);
+    console.log(`⏱️ 総推定時間: ${totalTime}分`);
 
-      // 手順生成結果の検証
-      if (
-        !stepsResult.steps ||
-        !Array.isArray(stepsResult.steps) ||
-        stepsResult.steps.length === 0
-      ) {
-        throw new Error("Invalid steps result");
-      }
+    // 各ステップの検証（固定ステップは既に検証済みだが、念のため）
+    const validatedSteps = steps.map((step, index) => ({
+      stepNumber: step.stepNumber || index + 1,
+      title: step.title || `ステップ ${index + 1}`,
+      description: step.description || "",
+      stepType: step.stepType || "other",
+      tips: Array.isArray(step.tips) ? step.tips : [],
+      estimatedDuration: Math.max(5, step.estimatedDuration || 30),
+      techniques: Array.isArray(step.techniques) ? step.techniques : [],
+    }));
 
-      // 各ステップの検証
-      const validatedSteps = stepsResult.steps.map((step, index) => ({
-        stepNumber: step.stepNumber || index + 1,
-        title: step.title || `ステップ ${index + 1}`,
-        description: step.description || "",
-        stepType: step.stepType || "other",
-        tips: Array.isArray(step.tips) ? step.tips : [],
-        estimatedDuration: Math.max(5, step.estimatedDuration || 30), // 最低5分
-        techniques: Array.isArray(step.techniques) ? step.techniques : [],
-      }));
+    const response: ApiResponse<StepGenerationResponse> = {
+      success: true,
+      data: {
+        steps: validatedSteps,
+        totalEstimatedTime: Math.max(totalTime, 30), // 最低30分
+      },
+    };
 
-      const totalTime = validatedSteps.reduce(
-        (sum, step) => sum + step.estimatedDuration,
-        0
-      );
-
-      const response: ApiResponse<StepGenerationResponse> = {
-        success: true,
-        data: {
-          steps: validatedSteps,
-          totalEstimatedTime: Math.max(totalTime, 30), // 最低30分
-        },
-      };
-
-      return NextResponse.json(response);
-    } catch (error) {
-      if (error instanceof Error && error.message === "TIMEOUT") {
-        const errorResponse: ApiResponse<null> = {
-          success: false,
-          error: {
-            code: "TIMEOUT_ERROR",
-            message:
-              "手順生成に時間がかかりすぎています。しばらく待ってから再試行してください。",
-          },
-        };
-        return NextResponse.json(errorResponse, { status: 408 });
-      }
-
-      throw error; // 他のエラーは外側のcatchブロックで処理
-    }
+    return NextResponse.json(response);
   } catch (error) {
-    console.error("Step generation API error:", error);
+    console.error("Fixed steps API error:", error);
 
     let errorMessage =
-      "手順の生成に失敗しました。しばらく待ってから再試行してください。";
-    let errorCode = "GENERATION_ERROR";
+      "手順の取得に失敗しました。しばらく待ってから再試行してください。";
+    let errorCode = "STEPS_ERROR";
 
     if (error instanceof Error) {
       if (

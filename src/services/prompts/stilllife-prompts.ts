@@ -38,6 +38,7 @@ function generateStillLifeBackgroundPrompt(stepDescription: string): string {
 
 function generateStillLifeMainPrompt(stepDescription: string): string {
   return `**【重要】静物・建築画の主要部分を塗ってください**
+アクリル絵の具の質感で書いてください。
 
 【実行する手順】
 "${stepDescription}"

@@ -38,6 +38,7 @@ function generateAbstractBackgroundPrompt(stepDescription: string): string {
 
 function generateAbstractMainPrompt(stepDescription: string): string {
   return `**【重要】抽象画・その他の主要部分を塗ってください**
+アクリル絵の具の質感で書いてください。
 
 【実行する手順】
 "${stepDescription}"
