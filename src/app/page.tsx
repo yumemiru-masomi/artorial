@@ -1,9 +1,7 @@
 "use client";
-import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
-import MaterialSelector from "@/components/MaterialSelector";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { Material } from "@/types/tutorial";
 
@@ -14,44 +12,42 @@ export default function Home() {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
   );
-  const [textureStrength, setTextureStrength] = useState<number>(40);
-  const [currentStep, setCurrentStep] = useState<
-    "upload" | "material" | "analysis"
-  >("upload");
+  const [textureStrength] = useState<number>(40);
+  const [currentStep] = useState<"upload" | "analysis">("upload");
 
   const handleImageSelect = async (file: File) => {
     reset();
     const processedFile = await processFile(file);
     if (processedFile) {
       setSelectedFile(processedFile);
-      setCurrentStep("material");
+      setSelectedMaterial("acrylic"); // アクリル絵の具を自動選択
     }
   };
 
   const handleImageRemove = () => {
     setSelectedFile(null);
     setSelectedMaterial(null);
-    setCurrentStep("upload");
     reset();
   };
 
-  const handleMaterialSelect = (material: Material) => {
-    setSelectedMaterial(material);
-  };
-
-  const handleStartAnalysis = () => {
+  const handleStartAnalysis = async () => {
     if (selectedFile && selectedMaterial) {
-      // ファイルをsessionStorageに一時保存（Base64形式）
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.result) {
-          sessionStorage.setItem("selectedFile", reader.result as string);
-          sessionStorage.setItem("selectedMaterial", selectedMaterial);
-          sessionStorage.setItem("textureStrength", textureStrength.toString());
-          router.push("/analysis");
-        }
-      };
-      reader.readAsDataURL(selectedFile);
+      try {
+        // 型安全なセッション管理を使用
+        const { saveImageAnalysisSession } = await import(
+          "@/lib/session-storage"
+        );
+        await saveImageAnalysisSession(
+          selectedFile,
+          selectedMaterial,
+          textureStrength
+        );
+        router.push("/analysis");
+      } catch (error) {
+        console.error("Failed to save session data:", error);
+        // エラー時はフォールバック処理を実行
+        alert("データの保存に失敗しました。再試行してください。");
+      }
     }
   };
 
@@ -67,86 +63,12 @@ export default function Home() {
           </p>
         </div>
 
-        {/* 進捗インジケーター */}
-        <div className="flex items-center justify-center mb-12">
-          <div className="flex items-center space-x-4">
-            <div
-              className={`flex items-center ${
-                currentStep === "upload"
-                  ? "text-blue-600"
-                  : selectedFile
-                  ? "text-green-600"
-                  : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                  currentStep === "upload"
-                    ? "bg-blue-600"
-                    : selectedFile
-                    ? "bg-green-600"
-                    : "bg-gray-400"
-                }`}
-              >
-                1
-              </div>
-              <span className="ml-2 font-medium">画像アップロード</span>
-            </div>
-            <div
-              className={`w-8 h-0.5 ${
-                selectedFile ? "bg-green-600" : "bg-gray-300"
-              }`}
-            ></div>
-            <div
-              className={`flex items-center ${
-                currentStep === "material"
-                  ? "text-blue-600"
-                  : selectedMaterial
-                  ? "text-green-600"
-                  : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                  currentStep === "material"
-                    ? "bg-blue-600"
-                    : selectedMaterial
-                    ? "bg-green-600"
-                    : "bg-gray-400"
-                }`}
-              >
-                2
-              </div>
-              <span className="ml-2 font-medium">画材選択</span>
-            </div>
-            <div
-              className={`w-8 h-0.5 ${
-                selectedMaterial ? "bg-green-600" : "bg-gray-300"
-              }`}
-            ></div>
-            <div
-              className={`flex items-center ${
-                currentStep === "analysis" ? "text-blue-600" : "text-gray-400"
-              }`}
-            >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                  currentStep === "analysis" ? "bg-blue-600" : "bg-gray-400"
-                }`}
-              >
-                3
-              </div>
-              <span className="ml-2 font-medium">AI解析</span>
-            </div>
-          </div>
-        </div>
-
         {/* メインコンテンツ */}
         <div className="bg-white rounded-lg shadow-sm p-8">
           {currentStep === "upload" && (
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                描きたい写真を選択してください
+                選択された画像
               </h2>
               <ImageUpload
                 onImageSelect={handleImageSelect}
@@ -154,58 +76,19 @@ export default function Home() {
                 isProcessing={isProcessing}
                 error={error || undefined}
               />
-            </div>
-          )}
-
-          {currentStep === "material" && selectedFile && (
-            <div>
-              <MaterialSelector
-                selectedMaterial={selectedMaterial}
-                onMaterialSelect={handleMaterialSelect}
-                textureStrength={textureStrength}
-                onTextureStrengthChange={setTextureStrength}
-              />
-
-              <div className="mt-8 flex justify-between">
-                <button
-                  onClick={() => setCurrentStep("upload")}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  戻る
-                </button>
-                <button
-                  onClick={handleStartAnalysis}
-                  disabled={!selectedMaterial}
-                  className={`px-8 py-3 rounded-lg font-medium transition-colors ${
-                    selectedMaterial
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
-                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
-                >
-                  解析開始
-                </button>
-              </div>
+              {selectedFile && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={handleStartAnalysis}
+                    className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    解析開始
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        {/* アップロードされた画像のプレビュー（画材選択時） */}
-        {currentStep === "material" && selectedFile && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              選択された画像
-            </h3>
-            <div className="relative w-full max-w-md mx-auto">
-              <Image
-                src={URL.createObjectURL(selectedFile)}
-                alt="アップロードされた画像"
-                width={400}
-                height={300}
-                className="w-full rounded-lg shadow-md"
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

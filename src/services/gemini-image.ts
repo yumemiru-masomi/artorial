@@ -1,12 +1,36 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Material } from "@/types/tutorial";
-import { GeneratedImages } from "@/types/image-generation";
+import sharp from "sharp";
+
+interface GenerativeModel {
+  generateContent(
+    parts: Array<{ inlineData: { mimeType: string; data: string } } | string>
+  ): Promise<{
+    response: {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{
+            inlineData?: { mimeType?: string; data: string };
+            text?: string;
+          }>;
+        };
+      }>;
+    };
+  }>;
+}
 
 export class GeminiImageService {
   private genAI?: GoogleGenerativeAI;
-  private model?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  private model?: GenerativeModel;
+  private isInitialized = false;
 
   constructor() {
+    // 遅延初期化パターンを採用
+    this.initializeIfNeeded();
+  }
+
+  private initializeIfNeeded(): void {
+    if (this.isInitialized) return;
+
     // ビルド時は環境変数チェックをスキップ
     if (process.env.NODE_ENV === "production" && !process.env.GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY is not configured");
@@ -18,155 +42,64 @@ export class GeminiImageService {
       this.model = this.genAI.getGenerativeModel({
         model: process.env.IMAGE_MODEL_ID ?? "gemini-2.5-flash-image-preview", // 画像生成専用モデル
       });
+      this.isInitialized = true;
     }
   }
 
   /**
-   * Generate all 4 variations of the image in parallel
+   * 画像を最適化してファイルサイズを削減
    */
-  async generateAllVariations(
-    imageBuffer: Buffer,
-    material: Material,
-    textureStrength: number = 40
-  ): Promise<GeneratedImages> {
-    if (!this.genAI || !this.model) {
-      throw new Error("GEMINI_API_KEY is not configured");
-    }
-
-    const base64Image = imageBuffer.toString("base64");
-
+  private async optimizeImage(imageBuffer: Buffer): Promise<Buffer> {
     try {
-      const [lineArt, flatColor, highlight, paintedSample] =
-        await Promise.allSettled([
-          this.generateLineArt(base64Image),
-          this.generateFlatColor(base64Image, material, textureStrength),
-          this.generateHighlight(base64Image, material, textureStrength),
-          this.generatePaintedSample(base64Image, material, textureStrength),
-        ]);
+      console.log("🔧 画像最適化を開始...");
+      const originalSize = imageBuffer.length;
 
-      return {
-        lineArt: lineArt.status === "fulfilled" ? lineArt.value : imageBuffer,
-        flatColor:
-          flatColor.status === "fulfilled" ? flatColor.value : imageBuffer,
-        highlight:
-          highlight.status === "fulfilled" ? highlight.value : imageBuffer,
-        paintedSample:
-          paintedSample.status === "fulfilled"
-            ? paintedSample.value
-            : imageBuffer,
-      };
+      const optimized = await sharp(imageBuffer)
+        .resize(1024, 1024, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      const optimizedSize = optimized.length;
+      console.log(
+        `📊 画像最適化完了: ${originalSize} → ${optimizedSize} bytes (${Math.round(
+          (1 - optimizedSize / originalSize) * 100
+        )}% 削減)`
+      );
+
+      return optimized;
     } catch (error) {
-      console.error("Error generating image variations:", error);
-      // Fallback to original image for all variations
-      return {
-        lineArt: imageBuffer,
-        flatColor: imageBuffer,
-        highlight: imageBuffer,
-        paintedSample: imageBuffer,
-      };
+      console.warn("⚠️ 画像最適化に失敗、元画像を使用:", error);
+      return imageBuffer;
     }
   }
 
   /**
-   * Generate line art - white background with black lines only
+   * Sharp.jsを使用したフォールバック線画生成
    */
-  private async generateLineArt(base64Image: string): Promise<Buffer> {
-    const prompt = `Convert this image to clean line art:
-- Extract only the main outlines and contours
-- Create black lines on white background
-- Remove all colors, gradients, and shading
-- Maintain the character's shape and pose
-- Use clean, bold line weights
-- Anime/manga style line art
-- High contrast black and white only
+  private async generateLineArtFallback(imageBuffer: Buffer): Promise<Buffer> {
+    try {
+      console.log("🎨 Sharp.jsで線画生成を開始...");
 
-Generate a line art version of this image.`;
+      const lineArt = await sharp(imageBuffer)
+        .resize(800, 600, { fit: "inside", withoutEnlargement: true })
+        .grayscale()
+        .normalize()
+        // エッジ検出のためのコントラスト強化
+        .linear(2.0, -(128 * 1.0))
+        .threshold(140) // 二値化
+        .negate() // 白背景、黒線に反転
+        .png() // PNG形式で出力
+        .toBuffer();
 
-    return this.callGeminiAPI(base64Image, prompt);
-  }
-
-  /**
-   * Generate flat color version with basic material texture
-   */
-  private async generateFlatColor(
-    base64Image: string,
-    material: Material,
-    textureStrength: number
-  ): Promise<Buffer> {
-    const materialTextures = {
-      watercolor: `watercolor texture with soft paper grain`,
-      acrylic: `thick acrylic paint texture with brush strokes`,
-      "colored-pencil": `colored pencil texture with paper grain and light hatching`,
-      pencil: `pencil shading with graphite gradations`,
-    };
-
-    const prompt = `Convert this image to flat color style with ${material} medium:
-- Apply flat, solid colors without gradients
-- Add ${materialTextures[material] || "smooth texture"}
-- Maintain the character's shape and pose
-- Use cel-shading anime style
-- Add thin black outlines around shapes
-- Apply ${material} artistic medium characteristics
-
-Generate a flat color version of this image.`;
-
-    return this.callGeminiAPI(base64Image, prompt);
-  }
-
-  /**
-   * Generate highlight layer - transparent PNG with white highlights only
-   */
-  private async generateHighlight(
-    base64Image: string,
-    material: Material,
-    textureStrength: number
-  ): Promise<Buffer> {
-    const materialHighlights = {
-      watercolor: `抜き（リフト）やにじみ境界を控えめに。`,
-      acrylic: `厚塗りの艶ハイライト（微細な筆跡反射）を控えめに。`,
-      "colored-pencil": `白鉛筆の点描・紙目に沿うタッチを控えめに。`,
-      pencil: `紙の白い部分と光の反射による自然なハイライト。`,
-    };
-
-    const prompt = `Extract highlight effects from this image with ${material} medium:
-- Create white highlights only on transparent background
-- Extract the brightest areas and light reflections
-- Apply ${materialHighlights[material] || "smooth highlights"}
-- Maintain the character's shape and pose
-- Output as transparent PNG format
-- Soft, natural highlight placement
-
-Generate a highlight layer from this image.`;
-
-    return this.callGeminiAPI(base64Image, prompt);
-  }
-
-  /**
-   * Generate painted sample with strong material texture
-   */
-  private async generatePaintedSample(
-    base64Image: string,
-    material: Material,
-    textureStrength: number
-  ): Promise<Buffer> {
-    const materialStyles = {
-      watercolor: `透明感、重ね（グレーズ）、にじみ、紙目。`,
-      acrylic: `厚塗り、筆致、やや強い発色、わずかな光沢。`,
-      "colored-pencil": `重ね塗り、ハッチング、紙粒子、柔らかいエッジ。`,
-      pencil: `鉛筆特有の質感、グラデーション、紙の粒子感、濃淡の変化。`,
-    };
-
-    const prompt = `Transform this image into a finished painting with ${material} medium:
-- Apply rich ${materialStyles[material]}
-- Enhance with professional artwork quality
-- Add detailed material-specific textures
-- Maintain the character's shape and pose
-- Use full color range appropriate for ${material}
-- Create museum-quality finished appearance
-
-Generate a finished painting version of this image.`;
-
-    return this.callGeminiAPI(base64Image, prompt);
+      console.log("✅ Sharp.jsによる線画生成完了");
+      return lineArt;
+    } catch (error) {
+      console.error("❌ Sharp.js線画生成エラー:", error);
+      throw new Error("フォールバック線画生成に失敗しました");
+    }
   }
 
   /**
@@ -177,14 +110,20 @@ Generate a finished painting version of this image.`;
     prompt: string
   ): Promise<Buffer> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒に延長
 
     try {
       console.log("🚀 Gemini 2.5 Flash Image Previewで画像生成を開始...");
       console.log("- Model:", "gemini-2.5-flash-image-preview");
       console.log("- Prompt length:", prompt.length);
+      console.log("- Image size:", base64Image.length, "bytes");
+      console.log("- Timeout:", "60秒");
 
       // Gemini 2.5 Flash Image Previewで画像生成を実行
+      if (!this.model) {
+        throw new Error("Model is not initialized");
+      }
+
       const result = await this.model.generateContent([
         {
           inlineData: {
@@ -209,9 +148,9 @@ Generate a finished painting version of this image.`;
 
       // レスポンスから生成された画像を抽出
       const candidates = response.candidates;
-      if (candidates && candidates.length > 0) {
-        const parts = candidates[0].content?.parts;
-        if (parts) {
+      if (candidates && candidates.length > 0 && candidates[0].content) {
+        const parts = candidates[0].content.parts;
+        if (parts && parts.length > 0) {
           for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
             console.log(`- Part ${i}:`, {
@@ -240,47 +179,88 @@ Generate a finished painting version of this image.`;
       clearTimeout(timeoutId);
 
       if (error instanceof Error && error.name === "AbortError") {
-        console.error("⏰ Gemini APIタイムアウト（30秒超過）");
+        console.error("⏰ Gemini APIタイムアウト（60秒超過）");
         throw new Error("TIMEOUT");
       }
 
+      // より詳細なエラー情報をログ出力
       console.error("❌ Gemini画像生成エラー:", {
         name: error instanceof Error ? error.name : "Unknown",
         message: error instanceof Error ? error.message : "Unknown error",
+        promptLength: prompt.length,
+        imageSize: base64Image.length,
         stack:
           error instanceof Error
-            ? error.stack?.split("\n").slice(0, 3)
+            ? error.stack?.split("\n").slice(0, 5)
             : undefined,
       });
 
-      // エラー時は元画像を返す
+      // APIエラーの種類に応じた処理
+      if (error instanceof Error) {
+        if (
+          error.message.includes("quota") ||
+          error.message.includes("limit")
+        ) {
+          console.error("💰 API利用制限に達しました");
+          throw new Error("QUOTA_EXCEEDED");
+        } else if (
+          error.message.includes("invalid") ||
+          error.message.includes("format")
+        ) {
+          console.error("📄 画像形式エラー");
+          throw new Error("INVALID_FORMAT");
+        }
+      }
+
+      // その他のエラー時は元画像を返す
       console.warn("🔄 エラーのため元画像にフォールバック");
       return Buffer.from(base64Image, "base64");
     }
   }
 
   /**
-   * Generate step-specific image based on custom prompt
-   * Supports multiple input images for layered generation
+   * カスタムプロンプトに基づいてステップ固有の画像を生成
+   * レイヤー生成のための複数入力画像をサポート
    */
   async generateStepImage(
     imageBuffer: Buffer,
     prompt: string,
     previousStepImageUrl?: string
   ): Promise<Buffer> {
-    const base64Image = imageBuffer.toString("base64");
+    this.initializeIfNeeded();
+    if (!this.genAI || !this.model) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
 
-    // For steps that require multiple images (flat color, highlights, shadows)
+    // 画像を最適化してからAPI呼び出し
+    const optimizedBuffer = await this.optimizeImage(imageBuffer);
+    const base64Image = optimizedBuffer.toString("base64");
+
+    // 複数の画像が必要なステップ（平塗り、ハイライト、影）の場合
     if (
       previousStepImageUrl &&
       (prompt.includes("line art") || prompt.includes("flat color"))
     ) {
-      // TODO: Implement multi-image input for Gemini API
-      // For now, use single image approach
+      // TODO: Gemini API用のマルチ画像入力を実装
+      // 現在は単一画像アプローチを使用
       console.log(`🔄 Multi-image input detected for step generation`);
     }
 
-    // Use the original image as primary reference
+    // 線画生成の場合はフォールバック処理を追加
+    if (prompt.includes("線画") || prompt.includes("白黒の線画")) {
+      try {
+        console.log("🎯 線画生成: Gemini APIを試行");
+        return await this.callGeminiAPI(base64Image, prompt);
+      } catch (error) {
+        console.warn(
+          "⚠️ Gemini線画生成失敗、Sharp.jsフォールバックを使用:",
+          error
+        );
+        return await this.generateLineArtFallback(optimizedBuffer);
+      }
+    }
+
+    // その他のステップは通常通りGemini APIを使用
     return this.callGeminiAPI(base64Image, prompt);
   }
 }

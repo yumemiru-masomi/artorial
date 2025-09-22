@@ -152,12 +152,12 @@ export default function ImageUpload({
   if (preview) {
     return (
       <div className="relative">
-        <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-gray-200">
+        <div className="relative w-full max-w-md mx-auto aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
           <NextImage
             src={preview}
             alt="プレビュー画像"
             fill
-            className="object-cover"
+            className="object-contain"
             unoptimized
           />
           {!disabled && (

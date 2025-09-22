@@ -11,15 +11,12 @@ import {
 } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
-// ImageGenerationResponse削除 - StepGuideで画像生成（コスト削減）
 
 interface TutorialData {
   imageUrl: string;
   material: Material;
   analysisResult: ImageAnalysisResponse;
 }
-
-const TUTORIAL_DATA_KEY = "artorial_tutorial_data";
 
 function TutorialPageContent() {
   const router = useRouter();
@@ -28,7 +25,6 @@ function TutorialPageContent() {
   const [stepsData, setStepsData] = useState<StepGenerationResponse | null>(
     null
   );
-  // generatedImages, isGeneratingImages を削除 - StepGuideで必要時に生成（コスト削減）
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -53,7 +49,8 @@ function TutorialPageContent() {
     }
 
     try {
-      const analysisResult: ImageAnalysisResponse = JSON.parse(analysisResultData);
+      const analysisResult: ImageAnalysisResponse =
+        JSON.parse(analysisResultData);
       const data: TutorialData = {
         imageUrl: fileData, // Base64 data URL
         material: materialData as Material,
@@ -62,7 +59,10 @@ function TutorialPageContent() {
       setTutorialData(data);
       generateSteps(data);
     } catch (error) {
-      console.error("Failed to parse tutorial data from session storage:", error);
+      console.error(
+        "Failed to parse tutorial data from session storage:",
+        error
+      );
       router.push("/");
     }
   }, [router, searchParams]);
@@ -95,7 +95,8 @@ function TutorialPageContent() {
         body: formData,
       });
 
-      const result: ApiResponse<StepGenerationResponse> = await apiResponse.json();
+      const result: ApiResponse<StepGenerationResponse> =
+        await apiResponse.json();
 
       if (result.success && result.data) {
         setStepsData(result.data);
@@ -110,21 +111,9 @@ function TutorialPageContent() {
     }
   };
 
-  // generateImages関数を削除 - StepGuideコンポーネントで必要時に生成（コスト削減）
-
   const handleRetry = () => {
     if (tutorialData) {
       generateSteps(tutorialData);
-    }
-  };
-
-  const handleBackToAnalysis = () => {
-    if (tutorialData) {
-      const params = new URLSearchParams({
-        image: tutorialData.imageUrl || "",
-        material: tutorialData.material || "",
-      });
-      router.push(`/analysis?${params.toString()}`);
     }
   };
 
@@ -141,10 +130,6 @@ function TutorialPageContent() {
   };
 
   const materialNames = {
-    // TODO: 今後追加予定の画材
-    // pencil: "デッサン",
-    // watercolor: "水彩画",
-    // "colored-pencil": "色鉛筆",
     acrylic: "アクリル絵の具",
   };
 
@@ -210,12 +195,6 @@ function TutorialPageContent() {
             >
               再試行
             </button>
-            <button
-              onClick={handleBackToAnalysis}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              解析結果に戻る
-            </button>
           </div>
         </div>
       </div>
@@ -278,12 +257,6 @@ function TutorialPageContent() {
             >
               新しい画像で始める
             </button>
-            <button
-              onClick={() => setIsCompleted(false)}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              手順を見直す
-            </button>
           </div>
         </div>
       </div>
@@ -302,27 +275,16 @@ function TutorialPageContent() {
       <div className="mb-8">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <button
-                onClick={handleBackToAnalysis}
-                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors mr-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                解析結果に戻る
-              </button>
-              <span className="text-gray-400">|</span>
-              <h1 className="text-2xl font-bold text-gray-900 ml-4">
-                {tutorialData &&
-                  (materialNames[
-                    tutorialData.material as keyof typeof materialNames
-                  ] ||
-                    materialNames.acrylic)}
-                の描画手順
-              </h1>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {tutorialData &&
+                (materialNames[
+                  tutorialData.material as keyof typeof materialNames
+                ] ||
+                  materialNames.acrylic)}
+              の描画手順
+            </h1>
             <div className="text-sm text-gray-600">
               推定時間: {stepsData.totalEstimatedTime}分
-              {/* 画像生成状態表示を削除 - StepGuideで必要時に生成（コスト削減） */}
             </div>
           </div>
         </div>
@@ -341,6 +303,8 @@ function TutorialPageContent() {
           isFirstStep={isFirstStep}
           isLastStep={isLastStep}
           allSteps={stepsData.steps}
+          category={tutorialData.analysisResult.category}
+          dominantColors={tutorialData.analysisResult.dominantColors}
         />
       )}
     </div>

@@ -1,11 +1,12 @@
 "use client";
 import Image from "next/image";
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Clock, Star, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
+import ColorPalette from "@/components/ColorPalette";
 
 function AnalysisPageContent() {
   const router = useRouter();
@@ -15,7 +16,6 @@ function AnalysisPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [material, setMaterial] = useState<Material | null>(null);
-  const [textureStrength, setTextureStrength] = useState<number>(40);
 
   const performAnalysis = useCallback(async () => {
     if (!selectedFile || !material) return;
@@ -48,28 +48,33 @@ function AnalysisPageContent() {
   }, [selectedFile, material]);
 
   useEffect(() => {
-    // sessionStorageからデータを取得
-    const fileData = sessionStorage.getItem("selectedFile");
-    const materialData = sessionStorage.getItem("selectedMaterial");
-    const textureData = sessionStorage.getItem("textureStrength");
+    const loadSessionData = async () => {
+      try {
+        // 型安全なセッション管理を使用
+        const { loadImageAnalysisSession } = await import(
+          "@/lib/session-storage"
+        );
+        const sessionData = loadImageAnalysisSession();
 
-    if (!fileData || !materialData) {
-      router.push("/");
-      return;
-    }
+        if (!sessionData.selectedFile || !sessionData.selectedMaterial) {
+          router.push("/");
+          return;
+        }
 
-    // Base64からFileオブジェクトを復元
-    fetch(fileData)
-      .then((res) => res.blob())
-      .then((blob) => {
+        // Base64からFileオブジェクトを復元
+        const response = await fetch(sessionData.selectedFile);
+        const blob = await response.blob();
         const file = new File([blob], "image.jpg", { type: blob.type });
+
         setSelectedFile(file);
-        setMaterial(materialData as Material);
-        setTextureStrength(textureData ? parseInt(textureData, 10) : 40);
-      })
-      .catch(() => {
+        setMaterial(sessionData.selectedMaterial as Material);
+      } catch (error) {
+        console.error("Failed to load session data:", error);
         router.push("/");
-      });
+      }
+    };
+
+    loadSessionData();
   }, [router]);
 
   useEffect(() => {
@@ -116,11 +121,18 @@ function AnalysisPageContent() {
     );
   };
 
-  const materialNames = {
-    pencil: "デッサン",
-    watercolor: "水彩画",
-    "colored-pencil": "色鉛筆",
-    acrylic: "アクリル絵の具",
+  const getCategoryLabel = (category: string) => {
+    const labels = {
+      landscape: "風景画",
+      portrait: "人物画",
+      character: "キャラクター画",
+      still_life: "静物画",
+      abstract: "抽象画",
+      animal: "動物画",
+      architecture: "建築物",
+      other: "その他",
+    };
+    return labels[category as keyof typeof labels] || "その他";
   };
 
   if (isLoading) {
@@ -202,10 +214,6 @@ function AnalysisPageContent() {
         {/* ヘッダー */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">解析結果</h1>
-          <p className="text-gray-600">
-            AI が画像を解析し、{material ? materialNames[material] : ''}
-            での描画難易度を判定しました
-          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -214,20 +222,14 @@ function AnalysisPageContent() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               選択された画像
             </h2>
-            <div className="relative w-full max-w-md mx-auto">
+            <div className="relative w-full max-w-md mx-auto aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
               <Image
                 src={selectedFile ? URL.createObjectURL(selectedFile) : ""}
                 alt="解析対象の画像"
-                width={400}
-                height={300}
-                className="w-full rounded-lg shadow-md"
+                fill
+                className="object-contain"
                 unoptimized
               />
-            </div>
-            <div className="mt-4 text-center">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                {material ? materialNames[material] : ""}
-              </span>
             </div>
           </div>
 
@@ -287,40 +289,35 @@ function AnalysisPageContent() {
               </div>
             </div>
 
-            {/* 被写体 */}
-            <div className="mb-6">
-              <div className="mb-2">
-                <span className="text-gray-700">主な被写体</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {analysisResult.subjects.map((subject, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
-                  >
-                    {subject}
+            {/* 画像種類 */}
+            {analysisResult.category && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-700">画像の種類</span>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    {getCategoryLabel(analysisResult.category)}
                   </span>
-                ))}
+                </div>
+                {analysisResult.categoryDescription && (
+                  <div className="text-sm text-gray-600">
+                    {analysisResult.categoryDescription}
+                  </div>
+                )}
               </div>
-            </div>
-
-            {/* 信頼度 */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-700">解析精度</span>
-                <span className="text-gray-600">
-                  {Math.round(analysisResult.confidence * 100)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${analysisResult.confidence * 100}%` }}
-                ></div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
+
+        {/* カラーパレット */}
+        {analysisResult.dominantColors &&
+          analysisResult.dominantColors.length > 0 && (
+            <div className="mt-8">
+              <ColorPalette
+                colors={analysisResult.dominantColors}
+                title="🎨 この画像で使われている色"
+              />
+            </div>
+          )}
 
         {/* アクションボタン */}
         <div className="mt-8 flex justify-between">

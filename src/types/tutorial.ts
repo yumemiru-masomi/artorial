@@ -1,4 +1,4 @@
-export type Material = "pencil" | "watercolor" | "colored-pencil" | "acrylic";
+export type Material = "acrylic";
 
 export type DifficultyLevel = "beginner" | "intermediate" | "advanced";
 
