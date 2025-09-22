@@ -9,7 +9,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useState, useEffect, memo } from "react";
-import { GeneratedStep } from "@/types/analysis";
+import { GeneratedStep, ImageCategory } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import Image from "next/image";
 import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
@@ -25,6 +25,7 @@ interface StepGuideProps {
   isFirstStep: boolean;
   isLastStep: boolean;
   allSteps: GeneratedStep[]; // 全ステップの情報
+  category: ImageCategory; // 画像カテゴリ
 }
 
 const StepGuide = memo(function StepGuide({
@@ -38,6 +39,7 @@ const StepGuide = memo(function StepGuide({
   isFirstStep,
   isLastStep,
   allSteps,
+  category,
 }: StepGuideProps) {
   const [nextStepReady, setNextStepReady] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -48,6 +50,7 @@ const StepGuide = memo(function StepGuide({
       allSteps,
       originalImageUrl,
       material,
+      category,
     });
 
   // 初回ロード時に現在のステップの画像のみ生成（コスト削減）

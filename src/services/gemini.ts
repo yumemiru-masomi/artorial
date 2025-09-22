@@ -435,6 +435,7 @@ export class GeminiService {
         title: "下書き・線画",
         description:
           "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
+        stepType: "lineart" as const,
         tips: ["元画像の構図を正確に保つ", "線の太さを均一にする"],
         estimatedDuration: 15,
         techniques: ["線画", "輪郭描写"],
@@ -463,11 +464,21 @@ export class GeminiService {
   "coloringSteps": [
     {"stepNumber": 2, "title": "背景塗り", "description": "背景を${
       analysisResult.dominantColors?.[0]?.name || "主要色"
-    }で塗る", "tips": ["薄めに塗る"], "estimatedDuration": 20, "techniques": ["背景塗り"]},
-    {"stepNumber": 3, "title": "主要部分塗り", "description": "メインとなる部分を実際の色で塗る", "tips": ["色を混ぜながら"], "estimatedDuration": 25, "techniques": ["基本塗り"]},
-    {"stepNumber": 4, "title": "仕上げ", "description": "細部を仕上げる", "tips": ["全体バランス確認"], "estimatedDuration": 20, "techniques": ["仕上げ"]}
+    }で塗る", "stepType": "background", "tips": ["薄めに塗る"], "estimatedDuration": 20, "techniques": ["背景塗り"]},
+    {"stepNumber": 3, "title": "主要部分塗り", "description": "メインとなる部分を実際の色で塗る", "stepType": "main_part", "tips": ["色を混ぜながら"], "estimatedDuration": 25, "techniques": ["基本塗り"]},
+    {"stepNumber": 4, "title": "仕上げ", "description": "細部を仕上げる", "stepType": "details", "tips": ["全体バランス確認"], "estimatedDuration": 20, "techniques": ["仕上げ"]}
   ]
 }
+
+**重要: stepTypeは以下の値のみ使用してください:**
+- "background": 背景塗り
+- "skin": 肌・顔塗り  
+- "clothing": 服・衣装塗り
+- "hair": 髪塗り
+- "accessories": 小物・アクセサリー塗り
+- "main_part": 複数部位を含む主要部分塗り
+- "details": 細部・仕上げ
+- "other": その他
 
 重要な制約:
 - stepNumberは2から開始し連続番号
@@ -556,6 +567,7 @@ export class GeminiService {
             stepNumber: 2,
             title: "背景塗り",
             description: "背景をアクリル絵具で塗ります",
+            stepType: "background" as const,
             tips: ["薄めに重ね塗り"],
             estimatedDuration: 20,
             techniques: ["背景塗り"],
@@ -564,6 +576,7 @@ export class GeminiService {
             stepNumber: 3,
             title: "色塗り",
             description: "メインとなる部分をアクリル絵具で塗ります",
+            stepType: "main_part" as const,
             tips: ["色の混合を活用"],
             estimatedDuration: 30,
             techniques: ["基本塗り"],
@@ -601,6 +614,7 @@ export class GeminiService {
             title: "下書き・線画",
             description:
               "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
+            stepType: "lineart" as const,
             tips: ["元画像の構図を正確に保つ"],
             estimatedDuration: 15,
             techniques: ["線画"],
@@ -609,6 +623,7 @@ export class GeminiService {
             stepNumber: 2,
             title: "基本色塗り",
             description: "アクリル絵具で基本となる色を塗ります",
+            stepType: "main_part" as const,
             tips: ["薄めから始める"],
             estimatedDuration: 30,
             techniques: ["基本塗り"],
@@ -617,6 +632,7 @@ export class GeminiService {
             stepNumber: 3,
             title: "仕上げ",
             description: "細部を調整し全体を仕上げます",
+            stepType: "details" as const,
             tips: ["全体のバランスを確認"],
             estimatedDuration: 20,
             techniques: ["仕上げ"],

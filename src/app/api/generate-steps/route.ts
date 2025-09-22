@@ -7,11 +7,7 @@ import {
 } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 
-const VALID_MATERIALS: Material[] = [
-  // TODO: 今後追加予定の画材
-  // 'pencil', 'watercolor', 'colored-pencil',
-  "acrylic",
-];
+const VALID_MATERIALS: Material[] = ["acrylic"]; //あとで消す
 const GENERATION_TIMEOUT = 30000; // 30秒
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -103,6 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         stepNumber: step.stepNumber || index + 1,
         title: step.title || `ステップ ${index + 1}`,
         description: step.description || "",
+        stepType: step.stepType || "other",
         tips: Array.isArray(step.tips) ? step.tips : [],
         estimatedDuration: Math.max(5, step.estimatedDuration || 30), // 最低5分
         techniques: Array.isArray(step.techniques) ? step.techniques : [],

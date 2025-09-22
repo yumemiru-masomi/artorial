@@ -329,6 +329,7 @@ function TutorialPageContent() {
           isFirstStep={isFirstStep}
           isLastStep={isLastStep}
           allSteps={stepsData.steps}
+          category={tutorialData.analysisResult.category}
         />
       )}
     </div>

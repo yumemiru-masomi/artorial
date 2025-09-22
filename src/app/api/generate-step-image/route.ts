@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
+import { ImageCategory } from "@/types/analysis";
+import { generateLineArtPrompt } from "@/services/prompts/common-lineart";
+import {
+  generateCharacterPrompt,
+  generateCharacterPromptByType,
+} from "@/services/prompts/character-prompts";
+import {
+  generateLandscapePrompt,
+  generateLandscapePromptByType,
+} from "@/services/prompts/landscape-prompts";
+import {
+  generateStillLifePrompt,
+  generateStillLifePromptByType,
+} from "@/services/prompts/stilllife-prompts";
+import {
+  generateAbstractPrompt,
+  generateAbstractPromptByType,
+} from "@/services/prompts/abstract-prompts";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -9,14 +27,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       originalImageUrl,
       stepNumber,
       stepDescription,
+      stepType,
       material,
-      previousStepImageUrl,
+      category,
     }: {
       originalImageUrl: string;
       stepNumber: number;
       stepDescription: string;
+      stepType?: string;
       material: Material;
-      previousStepImageUrl?: string;
+      category?: ImageCategory;
     } = body;
 
     // バリデーション
@@ -69,13 +89,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Gemini Image Serviceで画像生成
     const { geminiImageService } = await import("@/services/gemini-image");
 
-    // プロンプト生成
-    const prompt = generateStepPrompt(stepNumber, stepDescription);
+    // カテゴリ別プロンプト生成
+    const prompt = generateCategoryPrompt(
+      stepNumber,
+      stepDescription,
+      category || "other",
+      stepType
+    );
 
     const generatedImageBuffer = await geminiImageService.generateStepImage(
       inputBuffer,
-      prompt,
-      previousStepImageUrl
+      prompt
     );
 
     // 生成された画像をBase64で返す
@@ -130,15 +154,65 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-function generateStepPrompt(
+/**
+ * カテゴリ別プロンプト生成関数
+ *
+ * Geminiラベル → プロンプトカテゴリのマッピング:
+ * - landscape: "風景画" → 風景画プロンプト
+ * - portrait: "人物画" → キャラクタープロンプト
+ * - character: "キャラクター画" → キャラクタープロンプト
+ * - animal: "動物画" → キャラクタープロンプト
+ * - still_life: "静物画" → 静物プロンプト
+ * - architecture: "建築物" → 静物プロンプト
+ * - abstract: "抽象画" → その他プロンプト
+ * - other: "その他" → その他プロンプト
+ */
+function generateCategoryPrompt(
   stepNumber: number,
-  stepDescription: string
+  stepDescription: string,
+  category: ImageCategory,
+  stepType?: string
 ): string {
   console.log(
-    `🎨 プロンプト生成: ステップ${stepNumber}, 説明: "${stepDescription}"`
+    `🎨 プロンプト生成: ${category}, ステップ${stepNumber}, タイプ: ${stepType}`
   );
+  console.log(`📝 ステップ説明: "${stepDescription}"`);
 
-  // ステップ1: 線画（下書き）- 固定プロンプト
+  // ステップタイプが指定されている場合は、それを優先
+  if (stepType) {
+    // 線画は全カテゴリ共通
+    if (stepType === "lineart") {
+      console.log("✅ 線画プロンプト（stepType指定）");
+      return generateLineArtPrompt();
+    }
+
+    // カテゴリ別のstepType処理
+    switch (category) {
+      case "portrait":
+      case "character":
+      case "animal":
+        console.log(`✅ キャラクター専用プロンプト（stepType: ${stepType}）`);
+        return generateCharacterPromptByType(stepType, stepDescription);
+
+      case "landscape":
+        console.log(`✅ 風景画専用プロンプト（stepType: ${stepType}）`);
+        return generateLandscapePromptByType(stepType, stepDescription);
+
+      case "still_life":
+      case "architecture":
+        console.log(`✅ 静物・建築画専用プロンプト（stepType: ${stepType}）`);
+        return generateStillLifePromptByType(stepType, stepDescription);
+
+      default:
+        console.log(`✅ 抽象画・その他専用プロンプト（stepType: ${stepType}）`);
+        return generateAbstractPromptByType(stepType, stepDescription);
+    }
+  }
+
+  // フォールバック: 従来の文字列マッチング
+  console.log("⚠️ フォールバック: 文字列マッチングを使用");
+
+  // ステップ1: 線画（全カテゴリ共通）
   if (
     stepNumber === 1 ||
     stepDescription.includes("線画") ||
@@ -149,168 +223,29 @@ function generateStepPrompt(
     stepDescription.toLowerCase().includes("sketch") ||
     stepDescription.toLowerCase().includes("outline")
   ) {
-    console.log("✅ 線画プロンプトを使用");
-    return `**【重要】この画像を厳密に白(#FFFFFF)と黒(#000000)の2色のみで構成されたモノクロ画像に変換してください。青色やグレーは絶対に使用禁止です。**
-
-【最重要：色の制約】
-- 使用できる色は厳密に2色のみ：
-  - 黒色：#000000（RGB 0,0,0）
-  - 白色：#FFFFFF（RGB 255,255,255）
-- 青色、グレー、薄い色、その他の色は一切使用禁止
-
-【形状保持の要件】
-- 元画像の形状、比率、構図を一切変更しない
-- すべての要素の位置、サイズ、角度を正確に保持する
-- トリミング、拡大縮小、回転は禁止
-
-【線画の仕様】
-- 線の太さ：1-2px程度の均一な太さ
-- 線の種類：連続した滑らかな黒い線のみ
-- 塗りつぶし：一切禁止（背景の白以外は全て線のみ）
-- アンチエイリアシング：使用しない（完全な2値化）
-
-【重要：塗りつぶし禁止ルール】
-- 目の瞳、服、髪など、元画像で暗い部分も塗りつぶさない
-- すべての要素は輪郭線（枠線）のみで表現する
-- 内部は白いまま残し、境界線だけを黒い線で描く
-- 例：目の瞳 → 瞳の輪郭線のみ、内部は白
-- 例：黒い服 → 服の輪郭線のみ、内部は白
-
-**【絶対に守ること】**
-1. 元画像で黒い部分があっても、絶対に内部を黒で塗らない
-2. すべての要素は「枠線のみ」で表現する
-3. 内部は必ず白いまま残す
-4. 塗り絵として後で色を塗れるようにする
-
-**【技術仕様】**
-- 出力：PNG、モノクロ2値、白背景、すべての要素は輪郭線（枠線）のみで表現
-
-**【最終確認】**
-1. 画像に使用されている色が黒(#000000)と白(#FFFFFF)の2色のみであることを確認
-2. 青色、グレー、薄い色が一切含まれていないことを確認
-3. 完全なモノクロ2値画像であることを確認
-4. カラーパレットが2色に制限されていることを確認
-
-**【絶対条件】**
-- すべての要素は輪郭線（枠線）のみで表現する
-- 必ず純粋な白(#FFFFFF)と純粋な黒(#000000)のみで構成する`;
+    console.log("✅ 線画プロンプト（フォールバック）");
+    return generateLineArtPrompt();
   }
 
-  // ステップ2以降: 汎用的な段階的塗り分けプロンプト
-  else {
-    console.log("✅ 汎用的な段階的塗り分けプロンプトを使用");
-    console.log("🔍 ステップ説明:", stepDescription);
+  // ステップ2以降: カテゴリ別分岐
+  switch (category) {
+    case "landscape":
+      console.log("✅ 風景画プロンプト（フォールバック）");
+      return generateLandscapePrompt(stepDescription);
 
-    // 背景専用
-    if (
-      stepDescription.includes("背景") ||
-      stepDescription.includes("空") ||
-      stepDescription.includes("遠景") ||
-      stepDescription.includes("ベース塗り") ||
-      stepDescription.includes("下地") ||
-      stepDescription.includes("全体の色調")
-    ) {
-      console.log("✅ 背景専用プロンプトを選択");
-      return `**【重要】線画に元画像の背景色のみを追加してください**
+    case "portrait":
+    case "character":
+    case "animal":
+      console.log("✅ キャラクタープロンプト（フォールバック）");
+      return generateCharacterPrompt(stepDescription);
 
-この作業は「線画 + 元画像の背景色」を組み合わせる工程です：
+    case "still_life":
+    case "architecture":
+      console.log("✅ 静物・建築物プロンプト（フォールバック）");
+      return generateStillLifePrompt(stepDescription);
 
-【実行する手順】
-"${stepDescription}"
-
-**【作業の流れ】**
-1. 前ステップで生成された線画（白背景+黒線）を基準にする
-2. 元画像の背景部分の色・パターンのみを線画に追加する
-3. 線画の黒い線は絶対に変更・塗りつぶししない
-
-**【絶対に守る原則】**
-- 線画の黒い輪郭線は一切変更しない（塗りつぶし禁止）
-- 前景のキャラクター・人物・物体は白いまま残す（線画状態を保持）
-- 背景部分のみに元画像と同じ色を塗る
-
-【背景色の追加方法】
-- 元画像の背景色・パターン・グラデーションを正確に再現
-- 背景の形状・配置・色調を一切変更しない
-- 線画の輪郭線を保持したまま、背景領域のみに色を追加
-- 前景と背景の境界は線画の輪郭線で明確に区別
-
-【絶対に禁止すること】
-- 線画の黒い線を塗りつぶすこと
-- 前景（キャラクター・人物・物体）に色を塗ること
-- 背景色を勝手にアレンジ・変更すること
-- 元画像にない色や形状を追加すること
-
-【最終結果】
-- 背景：元画像と同じ色・パターン
-- 前景：白い塗り絵状態（線画のまま）
-- 輪郭線：黒いまま保持`;
-    }
-    // 特定の領域専用（肌・顔・建物・物体・キャラクターなど）
-    else if (
-      stepDescription.includes("肌") ||
-      stepDescription.includes("顔") ||
-      stepDescription.includes("建物") ||
-      stepDescription.includes("物体") ||
-      stepDescription.includes("静物") ||
-      stepDescription.includes("キャラクター") ||
-      stepDescription.includes("主要部分") ||
-      stepDescription.includes("服") ||
-      stepDescription.includes("髪") ||
-      stepDescription.includes("人物")
-    ) {
-      return `**【重要】元画像の色を正確に再現してください**
-
-アクリル絵具で【指定領域のみ】を塗ってください：
-
-【実行する手順】
-"${stepDescription}"
-
-**【絶対に守る色の原則】**
-- 元画像の各部分の色を一切変更しない
-- 服の色、髪の色、肌の色を元画像と完全に同じにする
-- 勝手な色のアレンジや変更は絶対禁止
-- 元画像を参照して正確な色を使用
-
-【塗り分けルール】
-- 指定領域（肌・顔・服・髪・キャラクター部分など）だけを塗る
-- 他の領域は線画のまま残す
-- 輪郭線は保持し、未塗り部分は白く残す
-- 背景は前のステップで塗り済みなので触らない
-
-【色の再現方法】
-- **元画像の色を忠実に模倣する**
-- 服が黒なら黒で、青なら青で、正確に再現
-- 髪が金色なら金色で、茶色なら茶色で再現
-- 肌色も元画像と同じ色調で再現
-- アクリル絵具の質感を活かしながらも、色は元画像優先
-
-【絶対に禁止すること】
-- 元画像と異なる色を使用すること
-- 服の色を勝手に変更すること
-- 髪の色を勝手に変更すること
-- 創作的な色のアレンジを加えること
-
-重要：元画像の色を100%正確に再現し、指定以外の領域は絶対に塗らないでください。`;
-    }
-    // その他（汎用）
-    else {
-      return `アクリル絵具で段階的に塗り分けを実行してください：
-
-【実行する手順】
-"${stepDescription}"
-
-【基本ルール】
-- 元画像の形状・比率・構図を厳密に維持
-- 各ステップごとに対象領域だけを塗り、他は線画として保持
-- アクリル絵具の特徴を活かす
-  - 適度な厚み（インパスト）
-  - 筆跡が残る自然な質感
-  - マット〜半光沢の仕上がり
-  - 色の重ね塗り・混合による表現
-- 前ステップとの一貫性を保つ
-- PNG形式で出力
-
-重要：このステップで指定された範囲以外は絶対に塗らないでください。`;
-    }
+    default:
+      console.log("✅ 抽象画・その他プロンプト（フォールバック）");
+      return generateAbstractPrompt(stepDescription);
   }
 }

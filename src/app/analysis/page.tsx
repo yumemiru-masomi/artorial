@@ -135,13 +135,6 @@ function AnalysisPageContent() {
     return labels[category as keyof typeof labels] || "その他";
   };
 
-  const materialNames = {
-    pencil: "デッサン",
-    watercolor: "水彩画",
-    "colored-pencil": "色鉛筆",
-    acrylic: "アクリル絵の具",
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -221,10 +214,6 @@ function AnalysisPageContent() {
         {/* ヘッダー */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">解析結果</h1>
-          <p className="text-gray-600">
-            AI が画像を解析し、{material ? materialNames[material] : ""}
-            での描画難易度を判定しました
-          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -242,11 +231,6 @@ function AnalysisPageContent() {
                 className="w-full rounded-lg shadow-md"
                 unoptimized
               />
-            </div>
-            <div className="mt-4 text-center">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                {material ? materialNames[material] : ""}
-              </span>
             </div>
           </div>
 

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { GeneratedStep } from "@/types/analysis";
+import { GeneratedStep, ImageCategory } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 
 interface UseStepImageGenerationProps {
   allSteps: GeneratedStep[];
   originalImageUrl: string;
   material: Material;
+  category: ImageCategory;
 }
 
 interface UseStepImageGenerationReturn {
@@ -21,6 +22,7 @@ export function useStepImageGeneration({
   allSteps,
   originalImageUrl,
   material,
+  category,
 }: UseStepImageGenerationProps): UseStepImageGenerationReturn {
   const [stepImages, setStepImages] = useState<(string | null)[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,8 +43,9 @@ export function useStepImageGeneration({
             originalImageUrl,
             stepNumber: stepIndex + 1,
             stepDescription: targetStep.description,
+            stepType: targetStep.stepType, // Pass stepType
             material,
-            previousStepImageUrl: stepImages[stepIndex - 1] || null,
+            category,
           }),
         });
 
@@ -61,7 +64,7 @@ export function useStepImageGeneration({
         return null;
       }
     },
-    [allSteps, originalImageUrl, material, stepImages]
+    [allSteps, originalImageUrl, material, category]
   );
 
   // 現在のステップの画像のみを生成する関数（コスト削減）

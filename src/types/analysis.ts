@@ -37,10 +37,22 @@ export interface StepGenerationRequest {
   analysisResult: ImageAnalysisResponse;
 }
 
+export type StepType =
+  | "lineart" // 線画・下書き
+  | "background" // 背景塗り
+  | "skin" // 肌塗り
+  | "clothing" // 服・衣装塗り
+  | "hair" // 髪塗り
+  | "accessories" // 小物・アクセサリー塗り
+  | "details" // 細部・仕上げ
+  | "main_part" // 主要部分塗り（複合）
+  | "other"; // その他
+
 export interface GeneratedStep {
   stepNumber: number;
   title: string;
   description: string;
+  stepType: StepType;
   tips: string[];
   estimatedDuration: number;
   techniques: string[];
