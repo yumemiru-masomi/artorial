@@ -9,10 +9,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useState, useEffect, memo } from "react";
-import { GeneratedStep, ImageCategory } from "@/types/analysis";
+import { GeneratedStep, ImageCategory, ColorInfo } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import Image from "next/image";
 import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
+import { getColorsForStep, getStepTypeLabel } from "@/lib/color-mapping";
+import ColorPalette from "@/components/ColorPalette";
 
 interface StepGuideProps {
   step: GeneratedStep;
@@ -26,6 +28,7 @@ interface StepGuideProps {
   isLastStep: boolean;
   allSteps: GeneratedStep[]; // 全ステップの情報
   category: ImageCategory; // 画像カテゴリ
+  dominantColors?: ColorInfo[]; // 画像解析で取得した主要色
 }
 
 const StepGuide = memo(function StepGuide({
@@ -40,6 +43,7 @@ const StepGuide = memo(function StepGuide({
   isLastStep,
   allSteps,
   category,
+  dominantColors = [],
 }: StepGuideProps) {
   const [nextStepReady, setNextStepReady] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -104,6 +108,9 @@ const StepGuide = memo(function StepGuide({
   const handleCompletionCancel = () => {
     setShowCompletionModal(false);
   };
+
+  // 現在のステップで使用する色を取得
+  const stepColors = getColorsForStep(step.stepType, dominantColors);
 
   return (
     <>
@@ -207,6 +214,16 @@ const StepGuide = memo(function StepGuide({
                 </div>
               )}
             </div>
+
+            {/* ステップ専用カラーパレット */}
+            {stepColors.length > 0 && (
+              <div className="mt-6">
+                <ColorPalette
+                  colors={stepColors}
+                  title={`🎨 ${getStepTypeLabel(step.stepType)}で使用する色`}
+                />
+              </div>
+            )}
           </div>
         </div>
 

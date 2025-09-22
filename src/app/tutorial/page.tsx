@@ -117,16 +117,6 @@ function TutorialPageContent() {
     }
   };
 
-  const handleBackToAnalysis = () => {
-    if (tutorialData) {
-      const params = new URLSearchParams({
-        image: tutorialData.imageUrl || "",
-        material: tutorialData.material || "",
-      });
-      router.push(`/analysis?${params.toString()}`);
-    }
-  };
-
   const handleNextStep = () => {
     if (isLastStep && stepsData) {
       setIsCompleted(true);
@@ -204,12 +194,6 @@ function TutorialPageContent() {
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               再試行
-            </button>
-            <button
-              onClick={handleBackToAnalysis}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              解析結果に戻る
             </button>
           </div>
         </div>
@@ -291,24 +275,14 @@ function TutorialPageContent() {
       <div className="mb-8">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <button
-                onClick={handleBackToAnalysis}
-                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors mr-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                解析結果に戻る
-              </button>
-              <span className="text-gray-400">|</span>
-              <h1 className="text-2xl font-bold text-gray-900 ml-4">
-                {tutorialData &&
-                  (materialNames[
-                    tutorialData.material as keyof typeof materialNames
-                  ] ||
-                    materialNames.acrylic)}
-                の描画手順
-              </h1>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {tutorialData &&
+                (materialNames[
+                  tutorialData.material as keyof typeof materialNames
+                ] ||
+                  materialNames.acrylic)}
+              の描画手順
+            </h1>
             <div className="text-sm text-gray-600">
               推定時間: {stepsData.totalEstimatedTime}分
             </div>
@@ -330,6 +304,7 @@ function TutorialPageContent() {
           isLastStep={isLastStep}
           allSteps={stepsData.steps}
           category={tutorialData.analysisResult.category}
+          dominantColors={tutorialData.analysisResult.dominantColors}
         />
       )}
     </div>

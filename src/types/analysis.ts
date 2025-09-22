@@ -58,6 +58,12 @@ export interface GeneratedStep {
   techniques: string[];
 }
 
+// ステップで使用する色情報
+export interface StepColorInfo {
+  stepType: StepType;
+  colors: ColorInfo[];
+}
+
 export interface StepGenerationResponse {
   steps: GeneratedStep[];
   totalEstimatedTime: number;
