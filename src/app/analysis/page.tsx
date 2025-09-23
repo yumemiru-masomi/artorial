@@ -137,24 +137,24 @@ function AnalysisPageContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className="flex items-center justify-center"
+        style={{ minHeight: "calc(100vh - 200px)" }}
+      >
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-blue-100 rounded-full">
-            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-2xl font-semibold header-text mb-2">
             AI で画像を解析中...
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="header-text opacity-80 mb-4">
             画像の複雑さと難易度を分析しています
           </p>
-          <div className="w-64 bg-gray-200 rounded-full h-2 mx-auto">
+          <div className="w-64 bg-white bg-opacity-20 rounded-full h-2 mx-auto">
             <div
-              className="bg-blue-600 h-2 rounded-full animate-pulse"
+              className="bg-sage-light h-2 rounded-full animate-pulse"
               style={{ width: "60%" }}
             ></div>
           </div>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-sm header-text opacity-70 mt-2">
             通常30秒ほどかかります...
           </p>
         </div>
@@ -164,11 +164,14 @@ function AnalysisPageContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className="flex items-center justify-center"
+        style={{ minHeight: "calc(100vh - 200px)" }}
+      >
         <div className="max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-red-100 rounded-full">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-white bg-opacity-20 rounded-full backdrop-blur-sm">
             <svg
-              className="w-8 h-8 text-red-600"
+              className="w-8 h-8 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -181,20 +184,20 @@ function AnalysisPageContent() {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-2xl font-semibold header-text mb-2">
             解析に失敗しました
           </h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <p className="header-text opacity-80 mb-6">{error}</p>
           <div className="space-x-4">
             <button
               onClick={handleRetry}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 bg-sage-light text-white rounded-lg hover:bg-sage-light transition-colors"
             >
               再試行
             </button>
             <button
               onClick={handleBackToHome}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 bg-white bg-opacity-20 text-white rounded-lg hover:bg-white hover:bg-opacity-30 transition-colors backdrop-blur-sm border border-white border-opacity-30"
             >
               最初に戻る
             </button>
@@ -209,20 +212,20 @@ function AnalysisPageContent() {
   }
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* ヘッダー */}
+        {/* ページタイトル */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">解析結果</h1>
+          <h2 className="text-3xl font-bold header-text mb-2">解析結果</h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 画像表示 */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="parchment-card rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               選択された画像
             </h2>
-            <div className="relative w-full max-w-md mx-auto aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+            <div className="relative w-full max-w-md mx-auto aspect-square bg-gray-50 rounded-lg overflow-hidden ">
               <Image
                 src={selectedFile ? URL.createObjectURL(selectedFile) : ""}
                 alt="解析対象の画像"
@@ -234,7 +237,7 @@ function AnalysisPageContent() {
           </div>
 
           {/* 解析結果 */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="parchment-card rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               解析結果
             </h2>
@@ -309,7 +312,7 @@ function AnalysisPageContent() {
             <div className="mt-8">
               <ColorPalette
                 colors={analysisResult.dominantColors}
-                title="🎨 この画像で使われている色"
+                title="この画像で使われている色"
               />
             </div>
           )}
@@ -318,14 +321,14 @@ function AnalysisPageContent() {
         <div className="mt-8 flex justify-between">
           <button
             onClick={handleBackToHome}
-            className="flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center px-6 py-3 bg-white text-gray-600 rounded-lg hover:bg-gray-50 transition-colors border border-gray-300"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             他の画像を選ぶ
           </button>
           <button
             onClick={handleProceedToTutorial}
-            className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center px-8 py-3 bg-sage-light text-white rounded-lg hover:bg-sage-light transition-colors"
           >
             手順を表示する
             <ArrowRight className="w-4 h-4 ml-2" />

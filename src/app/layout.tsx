@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Artorial - AI絵画指導アプリ",
@@ -15,8 +16,11 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head></head>
-      <body className="font-sans antialiased bg-gray-50 min-h-screen">
-        <div className="max-w-6xl mx-auto px-4 py-8">{children}</div>
+      <body className="antialiased min-h-screen">
+        <div className="relative z-10">
+          <Header />
+          <main className="max-w-6xl mx-auto px-4 pb-8">{children}</main>
+        </div>
       </body>
     </html>
   );

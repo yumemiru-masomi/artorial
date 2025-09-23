@@ -141,7 +141,7 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
         disabled={!isImageReady}
         className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
           isImageReady
-            ? "bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-md"
+            ? "bg-sage text-white hover:bg-sage hover:shadow-md"
             : "bg-gray-100 text-gray-400 cursor-not-allowed"
         }`}
         title={

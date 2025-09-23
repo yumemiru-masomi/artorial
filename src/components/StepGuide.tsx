@@ -5,7 +5,6 @@ import {
   ChevronRight,
   Clock,
   Lightbulb,
-  CheckCircle,
   Loader2,
 } from "lucide-react";
 import { useState, useEffect, memo } from "react";
@@ -138,16 +137,16 @@ const StepGuide = memo(function StepGuide({
         {/* 進捗バー */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-semibold header-text">
               ステップ {currentStepNumber} / {totalSteps}
             </span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm font-medium header-text opacity-90">
               {Math.round((currentStepNumber / totalSteps) * 100)}% 完了
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+          <div className="w-full bg-white bg-opacity-30 rounded-full h-2 border border-white border-opacity-40">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+              className="bg-yellow-400 h-full rounded-full transition-all duration-500 shadow-sm border border-yellow-500"
               style={{ width: `${(currentStepNumber / totalSteps) * 100}%` }}
             ></div>
           </div>
@@ -159,26 +158,29 @@ const StepGuide = memo(function StepGuide({
           {/* 画像セクション */}
           <div className="space-y-6">
             {/* ステップ画像セクション */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="parchment-card rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">
                   ステップ {currentStepNumber}: {step.title}
                 </h3>
-                <ImagePrintOrganizer
-                  imageUrl={getCurrentStepImage(currentStepNumber)}
-                  stepTitle={step.title}
-                  stepNumber={currentStepNumber}
-                  isImageReady={
-                    !loading && stepImages[currentStepNumber - 1] !== null
-                  }
-                />
+                {/* 下書き・線画のステップのみ印刷ボタンを表示 */}
+                {step.stepType === "lineart" && (
+                  <ImagePrintOrganizer
+                    imageUrl={getCurrentStepImage(currentStepNumber)}
+                    stepTitle={step.title}
+                    stepNumber={currentStepNumber}
+                    isImageReady={
+                      !loading && stepImages[currentStepNumber - 1] !== null
+                    }
+                  />
+                )}
               </div>
 
               <div className="relative w-full aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
                 {loading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
-                      <Loader2 className="animate-spin h-12 w-12 mx-auto text-blue-600 mb-4" />
+                      <Loader2 className="animate-spin h-12 w-12 mx-auto text-sage mb-4" />
                       <p className="text-gray-500 text-sm">画像生成中...</p>
                     </div>
                   </div>
@@ -198,11 +200,8 @@ const StepGuide = memo(function StepGuide({
           {/* 手順セクション */}
           <div className="space-y-6">
             {/* ステップ詳細 */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center mb-4">
-                <div className="bg-blue-100 text-blue-600 rounded-full p-2 mr-3">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
+            <div className="parchment-card rounded-lg p-6">
+              <div className="mb-4">
                 <h2 className="text-xl font-bold text-gray-900">
                   {step.title}
                 </h2>
@@ -263,7 +262,7 @@ const StepGuide = memo(function StepGuide({
             className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               isFirstStep
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-md"
+                : "bg-sage text-white hover:bg-sage hover:shadow-md"
             }`}
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
@@ -271,7 +270,7 @@ const StepGuide = memo(function StepGuide({
           </button>
 
           <div className="text-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm font-medium header-text">
               ステップ {currentStepNumber} / {totalSteps}
             </p>
           </div>
@@ -282,7 +281,7 @@ const StepGuide = memo(function StepGuide({
             className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               !nextStepReady
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:scale-105"
+                : "bg-sage-light text-white hover:bg-sage-light hover:shadow-lg transform hover:scale-105"
             }`}
           >
             {isLastStep ? (
@@ -305,7 +304,7 @@ const StepGuide = memo(function StepGuide({
       {/* 完了確認モーダル */}
       {showCompletionModal && (
         <div className="fixed inset-0 bg-gray-500/25 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="parchment-card rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               手順完了の確認
             </h3>
@@ -321,7 +320,7 @@ const StepGuide = memo(function StepGuide({
               </button>
               <button
                 onClick={handleCompletionConfirm}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-sage text-white rounded-lg hover:bg-sage transition-colors"
               >
                 OK
               </button>

@@ -31,10 +31,10 @@ export default function ColorPalette({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="parchment-card rounded-lg p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
         {colors.map((color, index) => (
           <div key={index} className="flex flex-col items-center space-y-2">
             {/* 大きなカラーサンプル */}

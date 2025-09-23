@@ -52,23 +52,19 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* ヘッダー */}
+        {/* 説明文 */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Artorial</h1>
-          <p className="text-xl text-gray-600 mb-2">AI絵画指導アプリ</p>
-          <p className="text-gray-500">
-            写真をアップロードして、AIが段階的な描画手順を生成します
-          </p>
+          <p className="header-text text-lg">好きな時に、好きな絵を描こう </p>
         </div>
 
         {/* メインコンテンツ */}
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="parchment-card rounded-lg p-8">
           {currentStep === "upload" && (
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                選択された画像
+                描きたい画像を選択してください。
               </h2>
               <ImageUpload
                 onImageSelect={handleImageSelect}
@@ -77,10 +73,16 @@ export default function Home() {
                 error={error || undefined}
               />
               {selectedFile && (
-                <div className="mt-6 flex justify-center">
+                <div className="mt-6 flex justify-center space-x-4">
+                  <button
+                    onClick={handleImageRemove}
+                    className="px-6 py-3 bg-white bg-opacity-20 text-gray-400 rounded-lg font-medium hover:bg-white hover:bg-opacity-30 transition-colors backdrop-blur-sm border border-white border-opacity-30"
+                  >
+                    キャンセル
+                  </button>
                   <button
                     onClick={handleStartAnalysis}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    className="px-8 py-3 bg-sage-light text-white rounded-lg font-medium hover:bg-sage-light transition-colors"
                   >
                     解析開始
                   </button>
