@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GeminiService } from "@/services/gemini";
-import { colorExtractorService } from "@/services/color-extractor";
+import { extractColorsFromBuffer } from "@/services/color-extractor";
 import { ApiResponse } from "@/types/api";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // 即座に色抽出を開始（フォールバック用）
     const quickColorExtractionPromise =
-      colorExtractorService.extractColorsFromBuffer(optimizedBuffer);
+      extractColorsFromBuffer(optimizedBuffer);
 
     // タイムアウト付きで解析実行
     const analysisPromise = geminiService.analyzeImageFromBase64(
@@ -115,8 +115,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           estimatedTime: Math.max(30, analysisResult.estimatedTime || 60), // 最低30分
           reasoning: analysisResult.reasoning || "分析が完了しました。",
           category: analysisResult.category,
-          categoryDescription: analysisResult.categoryDescription,
+          categoryDescription: "", // 使用しないため空文字
           dominantColors: analysisResult.dominantColors || [],
+          stepColors: analysisResult.stepColors,
         },
       };
 
@@ -138,13 +139,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               reasoning:
                 "処理時間の関係で簡易解析を実行しました。画像から抽出した色情報を基に中級レベルと判定しています。",
               category: "other",
-              categoryDescription:
-                "画像の詳細分析は時間の関係で省略されましたが、描画に適した内容です。",
+              categoryDescription: "", // 使用しないため空文字
               dominantColors: quickColors.map((color) => ({
                 hex: color.hex,
                 name: color.name,
                 percentage: color.percentage,
               })),
+              stepColors: undefined, // フォールバック時はstepColorsなし
             },
           };
 

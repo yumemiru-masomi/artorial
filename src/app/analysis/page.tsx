@@ -298,11 +298,6 @@ function AnalysisPageContent() {
                     {getCategoryLabel(analysisResult.category)}
                   </span>
                 </div>
-                {analysisResult.categoryDescription && (
-                  <div className="text-sm text-gray-600">
-                    {analysisResult.categoryDescription}
-                  </div>
-                )}
               </div>
             )}
           </div>

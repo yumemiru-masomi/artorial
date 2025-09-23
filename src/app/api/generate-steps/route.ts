@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ApiResponse } from "@/types/api";
-import {
-  StepGenerationResponse,
-  ImageAnalysisResponse,
-} from "@/types/analysis";
+import { StepGenerationResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 
 const VALID_MATERIALS: Material[] = ["acrylic"]; //あとで消す
@@ -67,10 +64,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // 固定ステップを取得
     console.log(`🎯 固定ステップ生成: カテゴリ=${analysisResult.category}`);
 
-    const { getFixedSteps, calculateTotalTime } = await import(
-      "@/services/fixed-steps"
+    const { getStepTemplates, calculateTotalTime } = await import(
+      "@/services/step-templates"
     );
-    const steps = getFixedSteps(analysisResult.category);
+    const steps = getStepTemplates(analysisResult.category);
     const totalTime = calculateTotalTime(steps);
 
     console.log(`📋 固定ステップ一覧:`, steps);

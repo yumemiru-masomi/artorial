@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { colorMixerService } from "@/services/color-mixer";
+import { calculateColorRecipe } from "@/services/color-mixer";
 import { ApiResponse } from "@/types/api";
 import { ColorRecipeResponse } from "@/types/color-recipe";
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // 数学的計算による混色レシピ生成（APIを使わない高速処理）
     console.log("🎨 数学的混色計算開始:", targetHex);
-    const colorRecipe = colorMixerService.calculateColorRecipe(targetHex);
+    const colorRecipe = calculateColorRecipe(targetHex);
 
     console.log("✅ 混色レシピ取得成功:", colorRecipe);
 
