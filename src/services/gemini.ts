@@ -1,31 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
-import { ColorRecipeResponse, FIXED_PAINT_PALETTE } from "@/types/color-recipe";
 import sharp from "sharp";
 
 interface DominantColor {
   hex: string;
   name: string;
   percentage: number;
-}
-
-interface MixColor {
-  name: string;
-  hex: string;
-  ratio: number;
-}
-
-interface Recipe {
-  name: string;
-  mix: MixColor[];
-  order: string[];
-  estimatedResultHex: string;
-  estimatedError: {
-    method: string;
-    value: number;
-  };
-  sentence_ja: string;
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -300,20 +281,7 @@ export class GeminiService {
         }
       }
 
-      // パターン2: 標準的なJSON形式
-      if (!parsed) {
-        const jsonMatch = text.match(/\{[\s\S]*?\}/);
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[0]);
-            console.log("✅ パターン2成功（標準JSON）:", parsed);
-          } catch (e) {
-            console.warn("❌ パターン2失敗:", e);
-          }
-        }
-      }
-
-      // パターン3: コードブロック内のJSON
+      // パターン2: コードブロック内のJSON
       if (!parsed) {
         const codeBlockMatch = text.match(
           /```(?:json)?\s*(\{[\s\S]*?\})\s*```/
@@ -321,16 +289,16 @@ export class GeminiService {
         if (codeBlockMatch) {
           try {
             parsed = JSON.parse(codeBlockMatch[1]);
-            console.log("✅ パターン3成功（コードブロック）:", parsed);
+            console.log("✅ パターン2成功（コードブロック）:", parsed);
           } catch (e) {
-            console.warn("❌ パターン3失敗:", e);
+            console.warn("❌ パターン2失敗:", e);
           }
         }
       }
 
-      // パターン4: 強制的なJSON構築（最後の手段）
+      // パターン3: 強制的なJSON構築（最後の手段）
       if (!parsed) {
-        console.log("🔧 パターン4: 強制JSON構築を試行");
+        console.log("🔧 パターン3: 強制JSON構築を試行");
         const difficultyMatch = text.match(
           /"difficulty"\s*:\s*"(beginner|intermediate|advanced)"/
         );
@@ -345,7 +313,7 @@ export class GeminiService {
             estimatedTime: parseInt(timeMatch[1]),
             reasoning: reasoningMatch?.[1] || "画像の分析が完了しました。",
           };
-          console.log("✅ パターン4成功（強制構築）:", parsed);
+          console.log("✅ パターン3成功（強制構築）:", parsed);
         }
       }
 
@@ -452,178 +420,6 @@ export class GeminiService {
         categoryDescription:
           "画像の解析中にエラーが発生しましたが、アクリル絵具での描画に適した内容です。",
         dominantColors: actualColors,
-      };
-    }
-  }
-
-  /**
-   * 指定された色の混色レシピを取得
-   */
-  async getColorRecipe(targetHex: string): Promise<ColorRecipeResponse> {
-    try {
-      console.log("🎨 混色レシピ取得開始 - ターゲット色:", targetHex);
-
-      // 固定パレットの情報を文字列として構築
-      const paletteInfo = FIXED_PAINT_PALETTE.map(
-        (color) => `- ${color.name} (${color.hex})`
-      ).join("\n");
-
-      const prompt = `あなたは画材の調色アシスタントです。以下の固定パレットだけを使い、指定のターゲット色（sRGBのHEX）に最も近い色を作るための混色レシピを提案してください。絵具の混色（減法混色）として考え、白と黒は明度・彩度調整に用いて構いません。出力は必ず JSON のみで返してください。
-
-【パレット（変更不可）】
-${paletteInfo}
-
-【ターゲット色】
-${targetHex}
-
-【出力要件】
-- 上限3色まで（+必要に応じてホワイト/ブラックを含めてOK）
-- 各色の比率（%の合計は100）
-- まず1案（best）、可能なら2案目（alt）まで
-- 各案について、混ぜる順番と短い日本語の説明文を付ける
-- sRGBでの想定結果HEXと、ターゲットHEXとの差（ΔE2000のような色差モデルが無理なら、RGB近似での誤差でもよい）を簡易に数値で出す
-
-【出力フォーマット(必須)】
-{
-  "target": "${targetHex}",
-  "recipes": [
-    {
-      "name": "best",
-      "mix": [
-        {"name": "<色名>", "hex": "<#RRGGBB>", "ratio": <number>},
-        ...
-      ],
-      "order": ["色名A", "色名B", ...],
-      "estimatedResultHex": "<#RRGGBB>",
-      "estimatedError": {
-        "method": "approx_rgb",
-        "value": <number>
-      },
-      "sentence_ja": "短い説明文（例：『パーマネントレッドにホワイトを加えて・・』）"
-    },
-    {
-      "name": "alt",
-      "mix": [...],
-      "order": [...],
-      "estimatedResultHex": "<#RRGGBB>",
-      "estimatedError": {"method":"approx_rgb","value": <number>},
-      "sentence_ja": "..."
-    }
-  ]
-}
-
-【注意】
-- 使用できるのは上記パレットのみ。独自色を追加しない
-- 比率は小数点1桁まで可、合計100に正規化
-- ユーザーに見せる説明は油彩/アクリルの一般的な調色手順の言い回しで自然に
-- 結果が完全一致しない場合は、最も近い現実的レシピを提案`;
-
-      console.log("📤 混色レシピAPI呼び出し実行中...");
-
-      const result = await this.model.generateContent([prompt]);
-      const response = await result.response;
-      const text = response.text();
-
-      console.log("📥 混色レシピAPI呼び出し完了");
-      console.log("📝 レスポンス:", text);
-
-      // JSONレスポンスをパース
-      let parsed = null;
-
-      // パターン1: 標準的なJSON形式
-      const jsonMatch = text.match(/\{[\s\S]*?\}/);
-      if (jsonMatch) {
-        try {
-          parsed = JSON.parse(jsonMatch[0]);
-          console.log("✅ 混色レシピJSON解析成功:", parsed);
-        } catch (e) {
-          console.warn("❌ 混色レシピJSON解析失敗:", e);
-        }
-      }
-
-      // パターン2: コードブロック内のJSON
-      if (!parsed) {
-        const codeBlockMatch = text.match(
-          /```(?:json)?\s*(\{[\s\S]*?\})\s*```/
-        );
-        if (codeBlockMatch) {
-          try {
-            parsed = JSON.parse(codeBlockMatch[1]);
-            console.log("✅ 混色レシピコードブロック解析成功:", parsed);
-          } catch (e) {
-            console.warn("❌ 混色レシピコードブロック解析失敗:", e);
-          }
-        }
-      }
-
-      if (!parsed) {
-        console.error("🚨 混色レシピJSON解析に失敗");
-        // フォールバック: 基本的なレシピを返す
-        return {
-          target: targetHex,
-          recipes: [
-            {
-              name: "best",
-              mix: [
-                { name: "ホワイト", hex: "#FFFFFF", ratio: 70 },
-                { name: "パーマネントレッド", hex: "#AD0036", ratio: 30 },
-              ],
-              order: ["パーマネントレッド", "ホワイト"],
-              estimatedResultHex: "#D9809A",
-              estimatedError: { method: "approx_rgb", value: 50 },
-              sentence_ja:
-                "パーマネントレッドにホワイトを加えて薄いピンク色を作ります。",
-            },
-          ],
-        };
-      }
-
-      // データの検証と正規化
-      const validatedData: ColorRecipeResponse = {
-        target: parsed.target || targetHex,
-        recipes: Array.isArray(parsed.recipes)
-          ? parsed.recipes.map((recipe: Recipe) => ({
-              name: recipe.name || "best",
-              mix: Array.isArray(recipe.mix)
-                ? recipe.mix.map((color: MixColor) => ({
-                    name: color.name || "不明",
-                    hex: color.hex || "#808080",
-                    ratio: Math.max(0, Math.min(100, color.ratio || 0)),
-                  }))
-                : [],
-              order: Array.isArray(recipe.order) ? recipe.order : [],
-              estimatedResultHex: recipe.estimatedResultHex || targetHex,
-              estimatedError: {
-                method: recipe.estimatedError?.method || "approx_rgb",
-                value: recipe.estimatedError?.value || 0,
-              },
-              sentence_ja: recipe.sentence_ja || "混色レシピです。",
-            }))
-          : [],
-      };
-
-      console.log("✅ 混色レシピ取得完了:", validatedData);
-      return validatedData;
-    } catch (error) {
-      console.error("🚨 混色レシピ取得エラー:", error);
-
-      // エラー時のフォールバック
-      return {
-        target: targetHex,
-        recipes: [
-          {
-            name: "best",
-            mix: [
-              { name: "ホワイト", hex: "#FFFFFF", ratio: 50 },
-              { name: "ジェットブラック", hex: "#001400", ratio: 50 },
-            ],
-            order: ["ホワイト", "ジェットブラック"],
-            estimatedResultHex: "#808080",
-            estimatedError: { method: "approx_rgb", value: 100 },
-            sentence_ja:
-              "エラーが発生しました。基本的な混色レシピを表示しています。",
-          },
-        ],
       };
     }
   }

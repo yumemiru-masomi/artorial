@@ -77,30 +77,6 @@ export class ColorExtractorService {
   }
 
   /**
-   * 画像の主要色を分析してカテゴリ別に分類
-   */
-  async analyzeImageColors(imageBuffer: Buffer): Promise<{
-    background: ExtractedColor[];
-    foreground: ExtractedColor[];
-    details: ExtractedColor[];
-  }> {
-    const allColors = await this.extractColorsFromBuffer(imageBuffer);
-
-    // 使用割合に基づいて分類
-    const background = allColors.filter((color) => color.percentage > 25);
-    const foreground = allColors.filter(
-      (color) => color.percentage <= 25 && color.percentage > 8
-    );
-    const details = allColors.filter((color) => color.percentage <= 8);
-
-    return {
-      background: background.slice(0, 3),
-      foreground: foreground.slice(0, 4),
-      details: details.slice(0, 3),
-    };
-  }
-
-  /**
    * RGB値から色名を推定（高速版）
    */
   private getColorName(r: number, g: number, b: number): string {
