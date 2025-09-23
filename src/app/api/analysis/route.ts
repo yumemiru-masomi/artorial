@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GeminiService } from "@/services/gemini";
+import { extractColorsFromBuffer } from "@/services/color-extractor";
 import { ApiResponse } from "@/types/api";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
+import sharp from "sharp";
 
 const VALID_MATERIALS: Material[] = [
   // TODO: 今後追加予定の画材
@@ -52,12 +54,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(errorResponse, { status: 500 });
     }
 
-    // ファイルをBase64に変換
+    // ファイルを最適化してからBase64に変換（処理時間短縮）
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Image = buffer.toString("base64");
+    const originalBuffer = Buffer.from(bytes);
+
+    // 画像を最適化（サイズ縮小・品質調整）
+    const optimizedBuffer = await sharp(originalBuffer)
+      .resize(800, 600, {
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({
+        quality: 75, // 品質を下げて処理時間短縮
+        progressive: true,
+      })
+      .toBuffer();
+
+    const base64Image = optimizedBuffer.toString("base64");
+    console.log(
+      `📊 画像最適化: ${originalBuffer.length} → ${optimizedBuffer.length} bytes`
+    );
 
     const geminiService = new GeminiService();
+
+    // 即座に色抽出を開始（フォールバック用）
+    const quickColorExtractionPromise =
+      extractColorsFromBuffer(optimizedBuffer);
 
     // タイムアウト付きで解析実行
     const analysisPromise = geminiService.analyzeImageFromBase64(
@@ -93,23 +115,59 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           estimatedTime: Math.max(30, analysisResult.estimatedTime || 60), // 最低30分
           reasoning: analysisResult.reasoning || "分析が完了しました。",
           category: analysisResult.category,
-          categoryDescription: analysisResult.categoryDescription,
+          categoryDescription: "", // 使用しないため空文字
           dominantColors: analysisResult.dominantColors || [],
+          stepColors: analysisResult.stepColors,
         },
       };
 
       return NextResponse.json(response);
     } catch (error) {
       if (error instanceof Error && error.message === "TIMEOUT") {
-        const errorResponse: ApiResponse<null> = {
-          success: false,
-          error: {
-            code: "TIMEOUT_ERROR",
-            message:
-              "処理に時間がかかりすぎています。画像サイズを小さくしてお試しください。",
-          },
-        };
-        return NextResponse.json(errorResponse, { status: 408 });
+        console.log("⚠️ Gemini API タイムアウト - フォールバック色抽出を使用");
+
+        // タイムアウト時はフォールバック色抽出を使用
+        try {
+          const quickColors = await quickColorExtractionPromise;
+
+          const fallbackResponse: ApiResponse<ImageAnalysisResponse> = {
+            success: true,
+            data: {
+              difficulty: "intermediate",
+              complexity: 5,
+              estimatedTime: 90,
+              reasoning:
+                "処理時間の関係で簡易解析を実行しました。画像から抽出した色情報を基に中級レベルと判定しています。",
+              category: "other",
+              categoryDescription: "", // 使用しないため空文字
+              dominantColors: quickColors.map((color) => ({
+                hex: color.hex,
+                name: color.name,
+                percentage: color.percentage,
+              })),
+              stepColors: undefined, // フォールバック時はstepColorsなし
+            },
+          };
+
+          console.log(
+            "✅ フォールバック解析完了:",
+            fallbackResponse.data?.dominantColors?.length || 0,
+            "色"
+          );
+          return NextResponse.json(fallbackResponse);
+        } catch (fallbackError) {
+          console.error("❌ フォールバック色抽出も失敗:", fallbackError);
+
+          const errorResponse: ApiResponse<null> = {
+            success: false,
+            error: {
+              code: "TIMEOUT_ERROR",
+              message:
+                "処理に時間がかかりすぎています。画像サイズを小さくしてお試しください。",
+            },
+          };
+          return NextResponse.json(errorResponse, { status: 408 });
+        }
       }
 
       throw error; // 他のエラーは外側のcatchブロックで処理

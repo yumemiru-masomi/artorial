@@ -305,6 +305,7 @@ function TutorialPageContent() {
           allSteps={stepsData.steps}
           category={tutorialData.analysisResult.category}
           dominantColors={tutorialData.analysisResult.dominantColors}
+          stepColors={tutorialData.analysisResult.stepColors}
         />
       )}
     </div>

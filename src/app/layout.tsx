@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Artorial - AI絵画指導アプリ",
@@ -26,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head></head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
-      >
+      <body className="font-sans antialiased bg-gray-50 min-h-screen">
         <div className="max-w-6xl mx-auto px-4 py-8">{children}</div>
       </body>
     </html>

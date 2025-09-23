@@ -21,6 +21,12 @@ export interface ImageAnalysisRequest {
   material: string;
 }
 
+export interface StepColors {
+  background: ColorInfo[]; // 背景塗り用の色
+  main_part: ColorInfo[]; // 主要部分塗り用の色（肌・服・髪など）
+  details: ColorInfo[]; // 細部・仕上げ用の色（黒・白・アクセントカラーなど）
+}
+
 export interface ImageAnalysisResponse {
   difficulty: DifficultyLevel;
   complexity: number;
@@ -29,6 +35,7 @@ export interface ImageAnalysisResponse {
   category: ImageCategory;
   categoryDescription: string; // カテゴリの詳細説明
   dominantColors: ColorInfo[]; // 主要色（最大5色）
+  stepColors?: StepColors; // ステップ別の色分類（Geminiによる分析）
 }
 
 export interface StepGenerationRequest {

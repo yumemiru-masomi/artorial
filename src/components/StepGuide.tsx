@@ -9,7 +9,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { useState, useEffect, memo } from "react";
-import { GeneratedStep, ImageCategory, ColorInfo } from "@/types/analysis";
+import {
+  GeneratedStep,
+  ImageCategory,
+  ColorInfo,
+  StepColors,
+} from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import Image from "next/image";
 import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
@@ -29,6 +34,7 @@ interface StepGuideProps {
   allSteps: GeneratedStep[]; // 全ステップの情報
   category: ImageCategory; // 画像カテゴリ
   dominantColors?: ColorInfo[]; // 画像解析で取得した主要色
+  stepColors?: StepColors; // Geminiが分類したステップ別の色
 }
 
 const StepGuide = memo(function StepGuide({
@@ -44,6 +50,7 @@ const StepGuide = memo(function StepGuide({
   allSteps,
   category,
   dominantColors = [],
+  stepColors,
 }: StepGuideProps) {
   const [nextStepReady, setNextStepReady] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -109,8 +116,18 @@ const StepGuide = memo(function StepGuide({
     setShowCompletionModal(false);
   };
 
-  // 現在のステップで使用する色を取得
-  const stepColors = getColorsForStep(step.stepType, dominantColors);
+  // 現在のステップで使用する色を取得（Gemini分類を優先）
+  console.log("🔍 StepGuide - stepColors:", stepColors);
+  console.log("🔍 StepGuide - step.stepType:", step.stepType);
+  console.log("🔍 StepGuide - dominantColors:", dominantColors);
+
+  const currentStepColors = getColorsForStep(
+    step.stepType,
+    dominantColors,
+    stepColors
+  );
+
+  console.log("🔍 StepGuide - currentStepColors:", currentStepColors);
 
   return (
     <>
@@ -216,10 +233,10 @@ const StepGuide = memo(function StepGuide({
             </div>
 
             {/* ステップ専用カラーパレット */}
-            {stepColors.length > 0 && (
+            {currentStepColors.length > 0 && (
               <div className="mt-6">
                 <ColorPalette
-                  colors={stepColors}
+                  colors={currentStepColors}
                   title={`🎨 ${getStepTypeLabel(step.stepType)}で使用する色`}
                 />
               </div>

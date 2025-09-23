@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { ColorInfo } from "@/types/analysis";
+import ColorRecipeModal from "./ColorRecipeModal";
 
 interface ColorPaletteProps {
   colors: ColorInfo[];
@@ -11,9 +13,22 @@ export default function ColorPalette({
   colors,
   title = "主要色",
 }: ColorPaletteProps) {
+  const [selectedColor, setSelectedColor] = useState<ColorInfo | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   if (!colors || colors.length === 0) {
     return null;
   }
+
+  const handleColorClick = (color: ColorInfo) => {
+    setSelectedColor(color);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedColor(null);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -23,10 +38,11 @@ export default function ColorPalette({
         {colors.map((color, index) => (
           <div key={index} className="flex flex-col items-center space-y-2">
             {/* 大きなカラーサンプル */}
-            <div
-              className="w-16 h-16 rounded-lg border-2 border-gray-200 shadow-md flex-shrink-0 transition-transform hover:scale-105"
+            <button
+              onClick={() => handleColorClick(color)}
+              className="w-16 h-16 rounded-lg border-2 border-gray-200 shadow-md flex-shrink-0 transition-all hover:scale-105 hover:shadow-lg hover:border-blue-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               style={{ backgroundColor: color.hex }}
-              title={`${color.name} (${color.hex})`}
+              title={`${color.name} (${color.hex}) - クリックして混色レシピを表示`}
             />
 
             {/* 色名（メイン） */}
@@ -43,6 +59,18 @@ export default function ColorPalette({
           </div>
         ))}
       </div>
+
+      {/* 混色レシピモーダル */}
+      {selectedColor && (
+        <ColorRecipeModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          targetColor={{
+            hex: selectedColor.hex,
+            name: selectedColor.name,
+          }}
+        />
+      )}
     </div>
   );
 }

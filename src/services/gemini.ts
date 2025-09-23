@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ImageAnalysisResponse } from "@/types/analysis";
+import { ImageAnalysisResponse, StepColors, ColorInfo } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import sharp from "sharp";
 
@@ -93,7 +93,7 @@ export class GeminiService {
   }
 
   /**
-   * RGB値から色名を推定（改良版）
+   * RGB値から色名を推定（改良版・背景色を考慮）
    */
   private getColorName(r: number, g: number, b: number): string {
     // より詳細な色名判定
@@ -102,16 +102,64 @@ export class GeminiService {
     if (r < 20 && g < 20 && b < 20) return "黒";
     if (r < 50 && g < 50 && b < 50) return "濃いグレー";
 
+    // 緑系（背景色として重要・判定を強化）
+    if (g > r && g > b) {
+      const greenDominance = g - Math.max(r, b);
+      if (greenDominance > 30) {
+        // 閾値を下げて検出しやすく
+        if (r > g * 0.8 && b < g * 0.6) return "黄緑";
+        if (b > g * 0.8 && r < g * 0.6) return "青緑";
+        if (g > 180 && r > 100 && b > 100) return "明るい緑";
+        if (g > 150) return "緑";
+        if (g > 100) return "濃い緑";
+        return "深緑";
+      }
+    }
+
+    // 緑系の追加判定（より幅広い緑を検出）
+    if (g > 100 && g > r * 1.2 && g > b * 1.2) {
+      return "緑";
+    }
+
+    // 青・水色系（背景色として重要）
+    if (b > r && b > g) {
+      const blueDominance = b - Math.max(r, g);
+      if (blueDominance > 50) {
+        if (r > 150 && g > 200) return "水色";
+        if (g > r + 30) return "青緑";
+        if (b > 180) return "明るい青";
+        if (b > 120) return "青";
+        return "濃い青";
+      }
+    }
+
+    // 茶色系（背景色として重要・判定を改善）
+    if (r > g && g > b) {
+      const brownness = (r - b) / Math.max(r, 1);
+      if (brownness > 0.2 && r - b > 20) {
+        if (r > 200 && g > 140 && b > 80) return "明るい茶色";
+        if (r > 160 && g > 100 && b > 60) return "茶色";
+        if (r > 120 && g > 80 && b > 40) return "濃い茶色";
+        return "茶系";
+      }
+    }
+
+    // オレンジ・茶色の境界判定
+    if (r > 150 && g > 100 && b < 100 && r > g && g > b) {
+      if (g > r * 0.7) return "オレンジブラウン";
+      return "茶色";
+    }
+
+    // ベージュ・肌色系
+    if (r > 180 && g > 140 && b > 100 && r > g && g > b && r - b > 20) {
+      if (r > 220 && g > 180 && b > 140) return "ベージュ";
+      return "薄い茶色";
+    }
+
     // ピンク系
     if (r > 200 && g > 150 && b > 150 && r > g && r > b) {
       if (r > 240 && g > 200) return "薄いピンク";
       return "ピンク";
-    }
-
-    // ベージュ・肌色系
-    if (r > 180 && g > 140 && b > 100 && r > g && g > b && r - b > 30) {
-      if (r > 220 && g > 180 && b > 140) return "ベージュ";
-      return "茶系";
     }
 
     // オレンジ系
@@ -126,23 +174,6 @@ export class GeminiService {
       return "黄色";
     }
 
-    // 青・水色系（より詳細に）
-    if (b > r && b > g) {
-      if (r > 150 && g > 200 && b > 220) return "水色";
-      if (r > 100 && g > 150 && b > 200) return "薄い青";
-      if (b > 150) return "青";
-      return "濃い青";
-    }
-
-    // 水色系（RGB値が近い場合）
-    if (r > 100 && g > 180 && b > 200 && Math.abs(g - b) < 50) return "水色";
-
-    // 緑系
-    if (g > r && g > b) {
-      if (g > 150) return "緑";
-      return "濃い緑";
-    }
-
     // 紫系
     if (r > 100 && b > 100 && r > g && b > g && Math.abs(r - b) < 50) {
       if (r > 180 && b > 180) return "明るい紫";
@@ -150,8 +181,9 @@ export class GeminiService {
     }
 
     // 赤系
-    if (r > g && r > b) {
-      if (r > 150) return "赤";
+    if (r > g && r > b && r - Math.max(g, b) > 40) {
+      if (r > 180) return "明るい赤";
+      if (r > 120) return "赤";
       return "濃い赤";
     }
 
@@ -180,7 +212,7 @@ export class GeminiService {
       console.log("🎨 画材:", material);
       console.log("📄 MIMEタイプ:", mimeType);
 
-      // 日本語対応・動的値生成プロンプト
+      // 日本語対応・動的値生成・ステップ別色分類プロンプト
       const prompt = `この画像を詳細に分析して、以下のJSON形式で日本語で回答してください：
 
 {
@@ -189,17 +221,26 @@ export class GeminiService {
   "estimatedTime": "30-180の数値（分単位、難易度に応じて変動）",
   "reasoning": "日本語での詳細な分析理由",
   "category": "landscape/portrait/character/still_life/abstract/animal/architecture/other",
-  "categoryDescription": "日本語での画像説明",
   "dominantColors": [
     {"hex": "#色コード", "name": "色名", "percentage": 割合},
     // 最大8色まで
-  ]
+  ],
+  "stepColors": {
+    "background": [{"hex": "#色コード", "name": "色名", "percentage": 割合}],
+    "main_part": [{"hex": "#色コード", "name": "色名", "percentage": 割合}],
+    "details": [{"hex": "#色コード", "name": "色名", "percentage": 割合}]
+  }
 }
 
 分析基準：
 - difficulty: シンプルな形状=beginner、中程度=intermediate、複雑な細部=advanced
 - complexity: 色数・形状・細部の複雑さを1-10で評価
 - estimatedTime: difficultyとcomplexityに基づいて30-180分で設定
+- dominantColors: 画像全体の主要色を抽出
+- stepColors: 絵画ステップ別に色を分類
+  * background: 背景の色（画像の端や奥の色、人物・物体以外の色）
+  * main_part: 主要被写体の色（人物・動物・建物の色）
+  * details: 細部の色（黒・白・小さな装飾など）
 - 実際の画像内容を正確に反映した動的な値を設定
 - JSONのみ回答（説明文不要）`;
 
@@ -265,20 +306,7 @@ export class GeminiService {
         }
       }
 
-      // パターン2: 標準的なJSON形式
-      if (!parsed) {
-        const jsonMatch = text.match(/\{[\s\S]*?\}/);
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[0]);
-            console.log("✅ パターン2成功（標準JSON）:", parsed);
-          } catch (e) {
-            console.warn("❌ パターン2失敗:", e);
-          }
-        }
-      }
-
-      // パターン3: コードブロック内のJSON
+      // パターン2: コードブロック内のJSON
       if (!parsed) {
         const codeBlockMatch = text.match(
           /```(?:json)?\s*(\{[\s\S]*?\})\s*```/
@@ -286,16 +314,16 @@ export class GeminiService {
         if (codeBlockMatch) {
           try {
             parsed = JSON.parse(codeBlockMatch[1]);
-            console.log("✅ パターン3成功（コードブロック）:", parsed);
+            console.log("✅ パターン2成功（コードブロック）:", parsed);
           } catch (e) {
-            console.warn("❌ パターン3失敗:", e);
+            console.warn("❌ パターン2失敗:", e);
           }
         }
       }
 
-      // パターン4: 強制的なJSON構築（最後の手段）
+      // パターン3: 強制的なJSON構築（最後の手段）
       if (!parsed) {
-        console.log("🔧 パターン4: 強制JSON構築を試行");
+        console.log("🔧 パターン3: 強制JSON構築を試行");
         const difficultyMatch = text.match(
           /"difficulty"\s*:\s*"(beginner|intermediate|advanced)"/
         );
@@ -310,7 +338,7 @@ export class GeminiService {
             estimatedTime: parseInt(timeMatch[1]),
             reasoning: reasoningMatch?.[1] || "画像の分析が完了しました。",
           };
-          console.log("✅ パターン4成功（強制構築）:", parsed);
+          console.log("✅ パターン3成功（強制構築）:", parsed);
         }
       }
 
@@ -355,6 +383,7 @@ export class GeminiService {
       console.log("  - difficulty:", parsed.difficulty);
       console.log("  - complexity:", parsed.complexity);
       console.log("  - estimatedTime:", parsed.estimatedTime);
+      console.log("  - stepColors:", parsed.stepColors);
 
       const validatedData = {
         difficulty: ["beginner", "intermediate", "advanced"].includes(
@@ -374,8 +403,7 @@ export class GeminiService {
         category: validCategories.includes(parsed.category)
           ? parsed.category
           : "other",
-        categoryDescription:
-          parsed.categoryDescription || "画像の詳細な分類情報です。",
+        categoryDescription: "", // 使用しないため空文字
         dominantColors:
           Array.isArray(parsed.dominantColors) &&
           parsed.dominantColors.length > 0
@@ -388,6 +416,7 @@ export class GeminiService {
                 percentage: Math.max(0, Math.min(100, color.percentage || 0)),
               }))
             : await this.extractActualColors(base64Image),
+        stepColors: this.validateStepColors(parsed.stepColors),
       };
 
       console.log("✅ 最終的な分析結果:", validatedData);
@@ -419,5 +448,56 @@ export class GeminiService {
         dominantColors: actualColors,
       };
     }
+  }
+
+  /**
+   * ステップ別色情報を検証・正規化
+   */
+  private validateStepColors(stepColors: unknown): StepColors | undefined {
+    if (!stepColors || typeof stepColors !== "object") {
+      console.log("⚠️ stepColors が無効、スキップ");
+      return undefined;
+    }
+
+    const stepColorsObj = stepColors as Record<string, unknown>;
+
+    const validateColorArray = (colors: unknown): ColorInfo[] => {
+      if (!Array.isArray(colors)) return [];
+
+      return colors
+        .filter(
+          (color): color is Record<string, unknown> =>
+            color && typeof color === "object"
+        )
+        .map((color) => ({
+          hex:
+            typeof color.hex === "string" && color.hex.startsWith("#")
+              ? color.hex
+              : "#808080",
+          name: typeof color.name === "string" ? color.name : "不明",
+          percentage: Math.max(
+            0,
+            Math.min(
+              100,
+              typeof color.percentage === "number" ? color.percentage : 0
+            )
+          ),
+        }))
+        .slice(0, 5); // 各ステップ最大5色
+    };
+
+    const result: StepColors = {
+      background: validateColorArray(stepColorsObj.background),
+      main_part: validateColorArray(stepColorsObj.main_part),
+      details: validateColorArray(stepColorsObj.details),
+    };
+
+    console.log("✅ ステップ別色情報を検証:", {
+      background: result.background.length,
+      main_part: result.main_part.length,
+      details: result.details.length,
+    });
+
+    return result;
   }
 }

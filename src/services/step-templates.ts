@@ -1,6 +1,6 @@
 /**
- * 固定ステップテンプレート
- * カテゴリ別に事前定義されたステップを提供
+ * ステップテンプレート
+ * カテゴリ別に事前定義された描画ステップテンプレートを提供
  */
 
 import { GeneratedStep, ImageCategory } from "@/types/analysis";
@@ -23,7 +23,7 @@ const CHARACTER_STEPS: GeneratedStep[] = [
     description:
       "背景全体を元画像と同じ色で塗ります。キャラクター部分は白黒線画のまま残します。",
     stepType: "background",
-    tips: ["元画像の背景を詳細に観察", "キャラクター部分は絶対に塗らない"],
+    tips: ["元画像の背景を詳細に観察", "キャラクター部分は塗らない"],
     estimatedDuration: 25,
     techniques: ["背景塗り", "色観察", "境界認識"],
   },
@@ -41,7 +41,7 @@ const CHARACTER_STEPS: GeneratedStep[] = [
     stepNumber: 4,
     title: "細部・仕上げ",
     description:
-      "画像にある要素（目・口・鼻・眉毛など）の細部をブラックで描き込み、ハイライトを白で加えて全体を仕上げます。画像にない要素は描き加えず、画像通りに仕上げてください。",
+      "画像にある要素（目・口・鼻・眉毛など）の細部をブラックで描き込み、ハイライトを白で加えて全体を仕上げます。",
     stepType: "details",
     tips: ["細い筆を使用", "全体のバランスを確認しながら調整"],
     estimatedDuration: 25,
@@ -177,10 +177,10 @@ const ABSTRACT_STEPS: GeneratedStep[] = [
 ];
 
 /**
- * カテゴリに基づいて固定ステップを取得
+ * カテゴリに基づいてステップテンプレートを取得
  */
-export function getFixedSteps(category: ImageCategory): GeneratedStep[] {
-  console.log(`🎯 固定ステップを取得: ${category}`);
+export function getStepTemplates(category: ImageCategory): GeneratedStep[] {
+  console.log(`🎯 ステップテンプレートを取得: ${category}`);
 
   switch (category) {
     case "portrait":
@@ -207,7 +207,7 @@ export function getFixedSteps(category: ImageCategory): GeneratedStep[] {
 }
 
 /**
- * 固定ステップの総時間を計算
+ * ステップテンプレートの総時間を計算
  */
 export function calculateTotalTime(steps: GeneratedStep[]): number {
   return steps.reduce((total, step) => total + step.estimatedDuration, 0);
