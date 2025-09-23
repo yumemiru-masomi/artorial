@@ -14,7 +14,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export class GeminiService {
   // テキスト生成・画像解析用（画像生成以外のすべて）
   private model = genAI.getGenerativeModel({
-    model: process.env.TEXT_MODEL_ID ?? "gemini-1.5-flash",
+    model: process.env.TEXT_MODEL_ID ?? "gemini-2.5-flash",
     generationConfig: {
       temperature: 0.3,
       maxOutputTokens: 8192,
@@ -499,5 +499,40 @@ export class GeminiService {
     });
 
     return result;
+  }
+
+  /**
+   * 画像とプロンプトからテキストを生成（動的ステップ説明用）
+   */
+  async generateTextFromImageAndPrompt(
+    base64Image: string,
+    prompt: string,
+    mimeType: string = "image/jpeg"
+  ): Promise<string> {
+    try {
+      console.log("🚀 Gemini テキスト生成開始");
+
+      const result = await this.model.generateContent([
+        {
+          inlineData: {
+            data: base64Image,
+            mimeType,
+          },
+        },
+        prompt,
+      ]);
+
+      const response = await result.response;
+      const text = response.text();
+
+      if (!text || text.trim().length === 0) {
+        throw new Error("空のレスポンスが返されました");
+      }
+
+      return text.trim();
+    } catch (error) {
+      console.error("🚨 Gemini テキスト生成エラー:", error);
+      throw error;
+    }
   }
 }

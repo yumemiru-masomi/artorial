@@ -56,6 +56,7 @@ const StepGuide = memo(function StepGuide({
 }: StepGuideProps) {
   const [nextStepReady, setNextStepReady] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // 画像生成ロジックをカスタムフックに分離
   const { stepImages, loading, generateCurrentStepImage, getCurrentStepImage } =
@@ -208,9 +209,27 @@ const StepGuide = memo(function StepGuide({
               </div>
 
               <div className="mb-6">
-                <p className="text-gray-700 leading-relaxed">
-                  {step.description}
-                </p>
+                <div className="text-gray-700 leading-relaxed">
+                  {step.description && step.description.length > 150 ? (
+                    <>
+                      <p>
+                        {isDescriptionExpanded
+                          ? step.description
+                          : `${step.description.substring(0, 150)}...`}
+                      </p>
+                      <button
+                        onClick={() =>
+                          setIsDescriptionExpanded(!isDescriptionExpanded)
+                        }
+                        className="mt-2 text-sage-light hover:text-sage underline text-sm font-medium"
+                      >
+                        {isDescriptionExpanded ? "閉じる" : "もっと見る"}
+                      </button>
+                    </>
+                  ) : (
+                    <p>{step.description}</p>
+                  )}
+                </div>
               </div>
 
               {/* 推定時間 */}

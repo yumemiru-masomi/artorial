@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import StepGuide from "@/components/StepGuide";
 import { useTutorial } from "@/hooks/useTutorial";
+import StepGenerationLoadingWalkthrough from "@/components/StepGenerationLoadingWalkthrough";
 import {
   StepGenerationResponse,
   ImageAnalysisResponse,
@@ -134,35 +135,7 @@ function TutorialPageContent() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-blue-100 rounded-full">
-            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            描画手順を生成中...
-          </h2>
-          <p className="text-gray-600 mb-4">
-            {tutorialData &&
-              (materialNames[
-                tutorialData.material as keyof typeof materialNames
-              ] ||
-                materialNames.acrylic)}
-            での段階的な手順を作成しています
-          </p>
-          <div className="w-64 bg-gray-200 rounded-full h-2 mx-auto">
-            <div
-              className="bg-blue-600 h-2 rounded-full animate-pulse"
-              style={{ width: "70%" }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-500 mt-2">
-            通常45秒ほどかかります...
-          </p>
-        </div>
-      </div>
-    );
+    return <StepGenerationLoadingWalkthrough />;
   }
 
   if (error) {

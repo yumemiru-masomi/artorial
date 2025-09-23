@@ -2,11 +2,12 @@
 import Image from "next/image";
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Star, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
+import { Clock, Star, ArrowLeft, ArrowRight } from "lucide-react";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { ApiResponse } from "@/types/api";
 import ColorPalette from "@/components/ColorPalette";
+import AnalysisLoadingWalkthrough from "@/components/AnalysisLoadingWalkthrough";
 
 function AnalysisPageContent() {
   const router = useRouter();
@@ -136,30 +137,7 @@ function AnalysisPageContent() {
   };
 
   if (isLoading) {
-    return (
-      <div
-        className="flex items-center justify-center"
-        style={{ minHeight: "calc(100vh - 200px)" }}
-      >
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold header-text mb-2">
-            AI で画像を解析中...
-          </h2>
-          <p className="header-text opacity-80 mb-4">
-            画像の複雑さと難易度を分析しています
-          </p>
-          <div className="w-64 bg-white bg-opacity-20 rounded-full h-2 mx-auto">
-            <div
-              className="bg-sage-light h-2 rounded-full animate-pulse"
-              style={{ width: "60%" }}
-            ></div>
-          </div>
-          <p className="text-sm header-text opacity-70 mt-2">
-            通常30秒ほどかかります...
-          </p>
-        </div>
-      </div>
-    );
+    return <AnalysisLoadingWalkthrough />;
   }
 
   if (error) {

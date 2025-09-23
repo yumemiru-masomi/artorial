@@ -2,18 +2,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
+import OnboardingWalkthrough from "@/components/OnboardingWalkthrough";
+import MaterialsListModal from "@/components/MaterialsListModal";
 import { useImageUpload } from "@/hooks/useImageUpload";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import { Material } from "@/types/tutorial";
 
 export default function Home() {
   const router = useRouter();
   const { processFile, isProcessing, error, reset } = useImageUpload();
+  const { isOnboardingCompleted, isLoading, completeOnboarding } =
+    useOnboarding();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
   );
   const [textureStrength] = useState<number>(40);
   const [currentStep] = useState<"upload" | "analysis">("upload");
+  const [showMaterialsModal, setShowMaterialsModal] = useState(false);
 
   const handleImageSelect = async (file: File) => {
     reset();
@@ -51,12 +57,32 @@ export default function Home() {
     }
   };
 
+  // ローディング中は何も表示しない
+  if (isLoading) {
+    return null;
+  }
+
+  // オンボーディングが完了していない場合はウォークスルーを表示
+  if (!isOnboardingCompleted) {
+    return <OnboardingWalkthrough onComplete={completeOnboarding} />;
+  }
+
   return (
     <div className="py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* 説明文 */}
         <div className="text-center mb-12">
           <p className="header-text text-lg">好きな時に、好きな絵を描こう </p>
+        </div>
+
+        {/* 必要なものリストボタン */}
+        <div className="text-center mb-8">
+          <button
+            onClick={() => setShowMaterialsModal(true)}
+            className="px-6 py-3 bg-sage-light text-white rounded-lg font-medium hover:bg-sage transition-colors shadow-lg"
+          >
+            絵を描く時に必要なものリスト
+          </button>
         </div>
 
         {/* メインコンテンツ */}
@@ -92,6 +118,12 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* 必要なものリストモーダル */}
+      <MaterialsListModal
+        isOpen={showMaterialsModal}
+        onClose={() => setShowMaterialsModal(false)}
+      />
     </div>
   );
 }
