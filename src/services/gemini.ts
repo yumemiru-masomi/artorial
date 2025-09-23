@@ -1,12 +1,31 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ImageAnalysisResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
+import { ColorRecipeResponse, FIXED_PAINT_PALETTE } from "@/types/color-recipe";
 import sharp from "sharp";
 
 interface DominantColor {
   hex: string;
   name: string;
   percentage: number;
+}
+
+interface MixColor {
+  name: string;
+  hex: string;
+  ratio: number;
+}
+
+interface Recipe {
+  name: string;
+  mix: MixColor[];
+  order: string[];
+  estimatedResultHex: string;
+  estimatedError: {
+    method: string;
+    value: number;
+  };
+  sentence_ja: string;
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -93,7 +112,7 @@ export class GeminiService {
   }
 
   /**
-   * RGB値から色名を推定（改良版）
+   * RGB値から色名を推定（改良版・背景色を考慮）
    */
   private getColorName(r: number, g: number, b: number): string {
     // より詳細な色名判定
@@ -102,16 +121,48 @@ export class GeminiService {
     if (r < 20 && g < 20 && b < 20) return "黒";
     if (r < 50 && g < 50 && b < 50) return "濃いグレー";
 
+    // 緑系（背景色として重要）
+    if (g > r && g > b) {
+      const greenDominance = g - Math.max(r, b);
+      if (greenDominance > 50) {
+        if (r > 100 && b < 100) return "黄緑";
+        if (b > 100) return "青緑";
+        if (g > 180) return "明るい緑";
+        if (g > 120) return "緑";
+        return "濃い緑";
+      }
+    }
+
+    // 青・水色系（背景色として重要）
+    if (b > r && b > g) {
+      const blueDominance = b - Math.max(r, g);
+      if (blueDominance > 50) {
+        if (r > 150 && g > 200) return "水色";
+        if (g > r + 30) return "青緑";
+        if (b > 180) return "明るい青";
+        if (b > 120) return "青";
+        return "濃い青";
+      }
+    }
+
+    // 茶色系（背景色として重要）
+    if (r > g && g > b && r - b > 40) {
+      if (r > 160 && g > 100 && b < 80) {
+        if (r > 200 && g > 140) return "明るい茶色";
+        return "茶色";
+      }
+    }
+
+    // ベージュ・肌色系
+    if (r > 180 && g > 140 && b > 100 && r > g && g > b && r - b > 20) {
+      if (r > 220 && g > 180 && b > 140) return "ベージュ";
+      return "薄い茶色";
+    }
+
     // ピンク系
     if (r > 200 && g > 150 && b > 150 && r > g && r > b) {
       if (r > 240 && g > 200) return "薄いピンク";
       return "ピンク";
-    }
-
-    // ベージュ・肌色系
-    if (r > 180 && g > 140 && b > 100 && r > g && g > b && r - b > 30) {
-      if (r > 220 && g > 180 && b > 140) return "ベージュ";
-      return "茶系";
     }
 
     // オレンジ系
@@ -126,23 +177,6 @@ export class GeminiService {
       return "黄色";
     }
 
-    // 青・水色系（より詳細に）
-    if (b > r && b > g) {
-      if (r > 150 && g > 200 && b > 220) return "水色";
-      if (r > 100 && g > 150 && b > 200) return "薄い青";
-      if (b > 150) return "青";
-      return "濃い青";
-    }
-
-    // 水色系（RGB値が近い場合）
-    if (r > 100 && g > 180 && b > 200 && Math.abs(g - b) < 50) return "水色";
-
-    // 緑系
-    if (g > r && g > b) {
-      if (g > 150) return "緑";
-      return "濃い緑";
-    }
-
     // 紫系
     if (r > 100 && b > 100 && r > g && b > g && Math.abs(r - b) < 50) {
       if (r > 180 && b > 180) return "明るい紫";
@@ -150,8 +184,9 @@ export class GeminiService {
     }
 
     // 赤系
-    if (r > g && r > b) {
-      if (r > 150) return "赤";
+    if (r > g && r > b && r - Math.max(g, b) > 40) {
+      if (r > 180) return "明るい赤";
+      if (r > 120) return "赤";
       return "濃い赤";
     }
 
@@ -417,6 +452,178 @@ export class GeminiService {
         categoryDescription:
           "画像の解析中にエラーが発生しましたが、アクリル絵具での描画に適した内容です。",
         dominantColors: actualColors,
+      };
+    }
+  }
+
+  /**
+   * 指定された色の混色レシピを取得
+   */
+  async getColorRecipe(targetHex: string): Promise<ColorRecipeResponse> {
+    try {
+      console.log("🎨 混色レシピ取得開始 - ターゲット色:", targetHex);
+
+      // 固定パレットの情報を文字列として構築
+      const paletteInfo = FIXED_PAINT_PALETTE.map(
+        (color) => `- ${color.name} (${color.hex})`
+      ).join("\n");
+
+      const prompt = `あなたは画材の調色アシスタントです。以下の固定パレットだけを使い、指定のターゲット色（sRGBのHEX）に最も近い色を作るための混色レシピを提案してください。絵具の混色（減法混色）として考え、白と黒は明度・彩度調整に用いて構いません。出力は必ず JSON のみで返してください。
+
+【パレット（変更不可）】
+${paletteInfo}
+
+【ターゲット色】
+${targetHex}
+
+【出力要件】
+- 上限3色まで（+必要に応じてホワイト/ブラックを含めてOK）
+- 各色の比率（%の合計は100）
+- まず1案（best）、可能なら2案目（alt）まで
+- 各案について、混ぜる順番と短い日本語の説明文を付ける
+- sRGBでの想定結果HEXと、ターゲットHEXとの差（ΔE2000のような色差モデルが無理なら、RGB近似での誤差でもよい）を簡易に数値で出す
+
+【出力フォーマット(必須)】
+{
+  "target": "${targetHex}",
+  "recipes": [
+    {
+      "name": "best",
+      "mix": [
+        {"name": "<色名>", "hex": "<#RRGGBB>", "ratio": <number>},
+        ...
+      ],
+      "order": ["色名A", "色名B", ...],
+      "estimatedResultHex": "<#RRGGBB>",
+      "estimatedError": {
+        "method": "approx_rgb",
+        "value": <number>
+      },
+      "sentence_ja": "短い説明文（例：『パーマネントレッドにホワイトを加えて・・』）"
+    },
+    {
+      "name": "alt",
+      "mix": [...],
+      "order": [...],
+      "estimatedResultHex": "<#RRGGBB>",
+      "estimatedError": {"method":"approx_rgb","value": <number>},
+      "sentence_ja": "..."
+    }
+  ]
+}
+
+【注意】
+- 使用できるのは上記パレットのみ。独自色を追加しない
+- 比率は小数点1桁まで可、合計100に正規化
+- ユーザーに見せる説明は油彩/アクリルの一般的な調色手順の言い回しで自然に
+- 結果が完全一致しない場合は、最も近い現実的レシピを提案`;
+
+      console.log("📤 混色レシピAPI呼び出し実行中...");
+
+      const result = await this.model.generateContent([prompt]);
+      const response = await result.response;
+      const text = response.text();
+
+      console.log("📥 混色レシピAPI呼び出し完了");
+      console.log("📝 レスポンス:", text);
+
+      // JSONレスポンスをパース
+      let parsed = null;
+
+      // パターン1: 標準的なJSON形式
+      const jsonMatch = text.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+          console.log("✅ 混色レシピJSON解析成功:", parsed);
+        } catch (e) {
+          console.warn("❌ 混色レシピJSON解析失敗:", e);
+        }
+      }
+
+      // パターン2: コードブロック内のJSON
+      if (!parsed) {
+        const codeBlockMatch = text.match(
+          /```(?:json)?\s*(\{[\s\S]*?\})\s*```/
+        );
+        if (codeBlockMatch) {
+          try {
+            parsed = JSON.parse(codeBlockMatch[1]);
+            console.log("✅ 混色レシピコードブロック解析成功:", parsed);
+          } catch (e) {
+            console.warn("❌ 混色レシピコードブロック解析失敗:", e);
+          }
+        }
+      }
+
+      if (!parsed) {
+        console.error("🚨 混色レシピJSON解析に失敗");
+        // フォールバック: 基本的なレシピを返す
+        return {
+          target: targetHex,
+          recipes: [
+            {
+              name: "best",
+              mix: [
+                { name: "ホワイト", hex: "#FFFFFF", ratio: 70 },
+                { name: "パーマネントレッド", hex: "#AD0036", ratio: 30 },
+              ],
+              order: ["パーマネントレッド", "ホワイト"],
+              estimatedResultHex: "#D9809A",
+              estimatedError: { method: "approx_rgb", value: 50 },
+              sentence_ja:
+                "パーマネントレッドにホワイトを加えて薄いピンク色を作ります。",
+            },
+          ],
+        };
+      }
+
+      // データの検証と正規化
+      const validatedData: ColorRecipeResponse = {
+        target: parsed.target || targetHex,
+        recipes: Array.isArray(parsed.recipes)
+          ? parsed.recipes.map((recipe: Recipe) => ({
+              name: recipe.name || "best",
+              mix: Array.isArray(recipe.mix)
+                ? recipe.mix.map((color: MixColor) => ({
+                    name: color.name || "不明",
+                    hex: color.hex || "#808080",
+                    ratio: Math.max(0, Math.min(100, color.ratio || 0)),
+                  }))
+                : [],
+              order: Array.isArray(recipe.order) ? recipe.order : [],
+              estimatedResultHex: recipe.estimatedResultHex || targetHex,
+              estimatedError: {
+                method: recipe.estimatedError?.method || "approx_rgb",
+                value: recipe.estimatedError?.value || 0,
+              },
+              sentence_ja: recipe.sentence_ja || "混色レシピです。",
+            }))
+          : [],
+      };
+
+      console.log("✅ 混色レシピ取得完了:", validatedData);
+      return validatedData;
+    } catch (error) {
+      console.error("🚨 混色レシピ取得エラー:", error);
+
+      // エラー時のフォールバック
+      return {
+        target: targetHex,
+        recipes: [
+          {
+            name: "best",
+            mix: [
+              { name: "ホワイト", hex: "#FFFFFF", ratio: 50 },
+              { name: "ジェットブラック", hex: "#001400", ratio: 50 },
+            ],
+            order: ["ホワイト", "ジェットブラック"],
+            estimatedResultHex: "#808080",
+            estimatedError: { method: "approx_rgb", value: 100 },
+            sentence_ja:
+              "エラーが発生しました。基本的な混色レシピを表示しています。",
+          },
+        ],
       };
     }
   }

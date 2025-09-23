@@ -14,73 +14,34 @@ export type ColorCategory =
   | "details" // 細部・仕上げ色（黒、白など）
   | "other"; // その他
 
-// 色名から色カテゴリを推定する関数
+// 色名から色カテゴリを推定する関数（優先度順）
 export function categorizeColor(color: ColorInfo): ColorCategory[] {
   const name = color.name.toLowerCase();
   const hex = color.hex.toLowerCase();
-  const categories: ColorCategory[] = [];
 
-  // 背景色の判定
-  if (
-    name.includes("背景") ||
-    name.includes("空") ||
-    name.includes("青") ||
-    name.includes("緑") ||
-    name.includes("茶") ||
-    name.includes("灰") ||
-    color.percentage > 30 // 使用割合が高い色は背景色の可能性
-  ) {
-    categories.push("background");
+  // 優先度1: 明示的な色名による分類
+  if (name.includes("背景")) {
+    return ["background"];
+  }
+  if (name.includes("肌")) {
+    return ["skin"];
+  }
+  if (name.includes("髪")) {
+    return ["hair"];
+  }
+  if (name.includes("服") || name.includes("衣装")) {
+    return ["clothing"];
+  }
+  if (name.includes("アクセサリー") || name.includes("小物")) {
+    return ["accessories"];
   }
 
-  // 肌色の判定
-  if (
-    name.includes("肌") ||
-    name.includes("ベージュ") ||
-    name.includes("薄い") ||
-    name.includes("ピンク") ||
-    (hex.startsWith("#f") && hex.length === 7) // 明るい色
-  ) {
-    categories.push("skin");
+  // 優先度2: 使用割合による背景色判定（最も重要）
+  if (color.percentage > 35) {
+    return ["background"];
   }
 
-  // 髪色の判定
-  if (
-    name.includes("髪") ||
-    name.includes("茶色") ||
-    name.includes("黒") ||
-    name.includes("金") ||
-    name.includes("銀")
-  ) {
-    categories.push("hair");
-  }
-
-  // 服・衣装色の判定
-  if (
-    name.includes("服") ||
-    name.includes("衣装") ||
-    name.includes("青") ||
-    name.includes("赤") ||
-    name.includes("緑") ||
-    name.includes("紫") ||
-    name.includes("黄") ||
-    color.percentage > 15 // 中程度の使用割合
-  ) {
-    categories.push("clothing");
-  }
-
-  // アクセサリー・小物色の判定
-  if (
-    name.includes("アクセサリー") ||
-    name.includes("小物") ||
-    name.includes("金") ||
-    name.includes("銀") ||
-    name.includes("白") ||
-    color.percentage < 10 // 使用割合が少ない色
-  ) {
-    categories.push("accessories");
-  }
-
+  // 優先度3: 色の特徴による分類
   // 細部・仕上げ色の判定（黒、白など）
   if (
     name.includes("黒") ||
@@ -90,15 +51,62 @@ export function categorizeColor(color: ColorInfo): ColorCategory[] {
     name.includes("濃い") ||
     name.includes("薄い")
   ) {
-    categories.push("details");
+    return ["details"];
   }
 
-  // カテゴリが見つからない場合はotherを追加
-  if (categories.length === 0) {
-    categories.push("other");
+  // 肌色の判定
+  if (
+    name.includes("ベージュ") ||
+    name.includes("ピンク") ||
+    (hex.startsWith("#f") && hex.length === 7) // 明るい色
+  ) {
+    return ["skin"];
   }
 
-  return categories;
+  // 髪色の判定
+  if (name.includes("茶色") || name.includes("金") || name.includes("銀")) {
+    return ["hair"];
+  }
+
+  // 優先度4: 使用割合による分類
+  if (color.percentage > 20) {
+    // 高い使用割合の色は背景色の可能性が高い
+    if (
+      name.includes("空") ||
+      name.includes("青") ||
+      name.includes("緑") ||
+      name.includes("茶") ||
+      name.includes("灰")
+    ) {
+      return ["background"];
+    }
+    // その他の高使用割合色は服・衣装色
+    return ["clothing"];
+  }
+
+  if (color.percentage > 10) {
+    // 中程度の使用割合
+    if (
+      name.includes("青") ||
+      name.includes("赤") ||
+      name.includes("緑") ||
+      name.includes("紫") ||
+      name.includes("黄")
+    ) {
+      return ["clothing"];
+    }
+    return ["other"];
+  }
+
+  // 優先度5: 低使用割合の色
+  if (color.percentage < 8) {
+    if (name.includes("金") || name.includes("銀") || name.includes("白")) {
+      return ["accessories"];
+    }
+  }
+
+  // デフォルト
+  return ["other"];
 }
 
 // ステップタイプに対応する色カテゴリのマッピング
