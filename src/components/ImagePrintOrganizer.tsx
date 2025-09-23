@@ -26,7 +26,7 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
 
   /**
    * 印刷時のスタイル設定
-   * A4サイズに最適化し、画像を中心に配置
+   * A4サイズに最適化し、画像のみを印刷対象にする
    */
   const pageStyle = `
     @page { 
@@ -35,16 +35,34 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
     }
     
     @media print {
-      body { 
+      /* 全体のリセット */
+      * {
         -webkit-print-color-adjust: exact !important;
         color-adjust: exact !important;
         print-color-adjust: exact !important;
-        margin: 0 !important;
-        padding: 0 !important;
       }
       
-      /* 印刷時に他の要素を非表示 */
+      /* bodyの設定 */
+      body { 
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        background-image: none !important;
+      }
+      
+      /* 印刷時に他の要素を完全に非表示 */
       body > *:not([data-print-content]) {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      
+      /* 背景画像やパターンを除去 */
+      body::before,
+      body::after,
+      *::before,
+      *::after {
+        background: none !important;
+        background-image: none !important;
         display: none !important;
       }
       
@@ -56,20 +74,27 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
         flex-direction: column !important;
         justify-content: center !important;
         align-items: center !important;
-        padding: 0 !important;
+        padding: 20mm !important;
         box-sizing: border-box !important;
         page-break-inside: avoid !important;
+        background: white !important;
+        background-image: none !important;
+        position: relative !important;
+        z-index: 9999 !important;
       }
       
       /* 画像の最適化 */
       .print-image {
-        max-width: 90% !important;
-        max-height: 75vh !important;
+        max-width: 100% !important;
+        max-height: 80vh !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
         display: block !important;
         page-break-inside: avoid !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: white !important;
       }
       
       /* テキストの調整 */
@@ -79,6 +104,7 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
         page-break-after: avoid !important;
         color: #000 !important;
         text-align: center !important;
+        background: white !important;
       }
       
       p {
@@ -87,6 +113,7 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
         page-break-after: avoid !important;
         color: #666 !important;
         text-align: center !important;
+        background: white !important;
       }
     }
   `;

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { RefreshCw } from "lucide-react";
 import StepGuide from "@/components/StepGuide";
 import { useTutorial } from "@/hooks/useTutorial";
 import StepGenerationLoadingWalkthrough from "@/components/StepGenerationLoadingWalkthrough";
@@ -182,12 +181,7 @@ function TutorialPageContent() {
             おめでとうございます！
           </h2>
           <p className="text-xl header-text opacity-90 mb-2">
-            {tutorialData &&
-              (materialNames[
-                tutorialData.material as keyof typeof materialNames
-              ] ||
-                materialNames.acrylic)}
-            の手順が完了しました
+            アクリル絵の具の絵が完成しました
           </p>
 
           <div className="parchment-card rounded-lg p-6 mb-8">
@@ -241,14 +235,7 @@ function TutorialPageContent() {
       <div className="mb-8">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold header-text">
-              {tutorialData &&
-                (materialNames[
-                  tutorialData.material as keyof typeof materialNames
-                ] ||
-                  materialNames.acrylic)}
-              の描画手順
-            </h2>
+            <h2 className="text-2xl font-bold header-text">絵を描く手順</h2>
             <div className="text-sm header-text opacity-80">
               推定時間: {stepsData.totalEstimatedTime}分
             </div>

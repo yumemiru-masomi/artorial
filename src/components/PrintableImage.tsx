@@ -42,7 +42,7 @@ const PrintableImage: React.FC<PrintableImageProps> = ({
         </div>
       </div>
 
-      {/* 印刷専用スタイル */}
+      {/* 印刷専用スタイル - 画像のみを印刷対象にする */}
       <style jsx global>{`
         @media print {
           /* ページ設定 */
@@ -51,34 +51,59 @@ const PrintableImage: React.FC<PrintableImageProps> = ({
             margin: 15mm;
           }
 
-          .printable-image-container {
-            width: 100% !important;
-            height: 100vh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-          }
-
-          /* 背景色・画像を印刷に含める */
+          /* 全体のリセット */
           * {
             -webkit-print-color-adjust: exact !important;
             color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
 
+          /* bodyの背景を完全に白にする */
+          body {
+            background: white !important;
+            background-image: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          /* 背景画像やパターンを完全に除去 */
+          body::before,
+          body::after,
+          *::before,
+          *::after {
+            background: none !important;
+            background-image: none !important;
+            display: none !important;
+          }
+
+          .printable-image-container {
+            width: 100% !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 20mm !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: white !important;
+            background-image: none !important;
+            position: relative !important;
+            z-index: 9999 !important;
+          }
+
           /* 印刷用画像の最適化 */
           .print-image {
-            max-width: 90% !important;
-            max-height: 75vh !important;
+            max-width: 100% !important;
+            max-height: 80vh !important;
             width: auto !important;
             height: auto !important;
             object-fit: contain !important;
             page-break-inside: avoid !important;
             display: block !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
           }
 
           /* テキストの調整 */
@@ -87,6 +112,7 @@ const PrintableImage: React.FC<PrintableImageProps> = ({
             margin-bottom: 10pt !important;
             color: #000 !important;
             text-align: center !important;
+            background: white !important;
           }
 
           p {
@@ -94,11 +120,13 @@ const PrintableImage: React.FC<PrintableImageProps> = ({
             margin-bottom: 15pt !important;
             color: #666 !important;
             text-align: center !important;
+            background: white !important;
           }
 
-          /* 他の要素を非表示にする */
+          /* 印刷対象以外の全ての要素を完全に非表示 */
           body > *:not([data-print-content]) {
             display: none !important;
+            visibility: hidden !important;
           }
         }
       `}</style>

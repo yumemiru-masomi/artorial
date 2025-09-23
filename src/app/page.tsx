@@ -92,6 +92,9 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
                 描きたい画像を選択してください。
               </h2>
+              <p className="text-sm text-black text-center mb-4">
+                人物・キャラクター・動物画を推奨します
+              </p>
               <ImageUpload
                 onImageSelect={handleImageSelect}
                 onImageRemove={handleImageRemove}

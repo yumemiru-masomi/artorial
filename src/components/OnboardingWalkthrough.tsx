@@ -9,7 +9,7 @@ interface OnboardingWalkthroughProps {
 
 const ONBOARDING_MESSAGES = [
   "ようこそ、Artorialへ",
-  "Artorialは、絵を描くことを通して",
+  "Artorialは、アクリル絵の具でを描くことを通して",
   "リラックスや、リフレッシュしてもらうことを目的としています",
   "絵を上手く描こう、綺麗に仕上げようとは思わなくて大丈夫です",
   "これから、私が絵の書き方をお伝えしますので",

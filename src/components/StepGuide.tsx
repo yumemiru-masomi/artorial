@@ -6,6 +6,7 @@ import {
   Clock,
   Lightbulb,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, memo } from "react";
 import {
@@ -59,13 +60,18 @@ const StepGuide = memo(function StepGuide({
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // 画像生成ロジックをカスタムフックに分離
-  const { stepImages, loading, generateCurrentStepImage, getCurrentStepImage } =
-    useStepImageGeneration({
-      allSteps,
-      originalImageUrl,
-      material,
-      category,
-    });
+  const {
+    stepImages,
+    loading,
+    generateCurrentStepImage,
+    getCurrentStepImage,
+    regenerateStepImage,
+  } = useStepImageGeneration({
+    allSteps,
+    originalImageUrl,
+    material,
+    category,
+  });
 
   // 初回ロード時に現在のステップの画像のみ生成（コスト削減）
   useEffect(() => {
@@ -147,8 +153,11 @@ const StepGuide = memo(function StepGuide({
           </div>
           <div className="w-full bg-white bg-opacity-30 rounded-full h-2 border border-white border-opacity-40">
             <div
-              className="bg-yellow-400 h-full rounded-full transition-all duration-500 shadow-sm border border-yellow-500"
-              style={{ width: `${(currentStepNumber / totalSteps) * 100}%` }}
+              className="h-full rounded-full transition-all duration-500 shadow-sm border border-amber-700"
+              style={{
+                width: `${(currentStepNumber / totalSteps) * 100}%`,
+                backgroundColor: "#B8860B",
+              }}
             ></div>
           </div>
 
@@ -160,21 +169,10 @@ const StepGuide = memo(function StepGuide({
           <div className="space-y-6">
             {/* ステップ画像セクション */}
             <div className="parchment-card rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">
                   ステップ {currentStepNumber}: {step.title}
                 </h3>
-                {/* 下書き・線画のステップのみ印刷ボタンを表示 */}
-                {step.stepType === "lineart" && (
-                  <ImagePrintOrganizer
-                    imageUrl={getCurrentStepImage(currentStepNumber)}
-                    stepTitle={step.title}
-                    stepNumber={currentStepNumber}
-                    isImageReady={
-                      !loading && stepImages[currentStepNumber - 1] !== null
-                    }
-                  />
-                )}
               </div>
 
               <div className="relative w-full aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
@@ -194,6 +192,20 @@ const StepGuide = memo(function StepGuide({
                     className="w-full h-full object-contain"
                   />
                 )}
+              </div>
+
+              {/* 再生成ボタンを画像の直下に配置 */}
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={() => regenerateStepImage(currentStepNumber - 1)}
+                  disabled={loading}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-sage-light hover:text-sage disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                  />
+                  {loading ? "生成中..." : "画像を再生成"}
+                </button>
               </div>
             </div>
           </div>
@@ -242,21 +254,38 @@ const StepGuide = memo(function StepGuide({
               {step.tips && step.tips.length > 0 && (
                 <div className="mb-6">
                   <div className="flex items-center mb-3">
-                    <Lightbulb className="w-4 h-4 text-yellow-500 mr-2" />
+                    <Lightbulb className="w-4 h-4 text-amber-600 mr-2" />
                     <h3 className="font-semibold text-gray-900">
                       コツとアドバイス
                     </h3>
                   </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <ul className="space-y-2">
                       {step.tips.map((tip, index) => (
                         <li key={index} className="flex items-start">
-                          <span className="flex-shrink-0 w-1.5 h-1.5 bg-yellow-400 rounded-full mt-2 mr-3"></span>
+                          <span
+                            className="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 mr-3"
+                            style={{ backgroundColor: "#B8860B" }}
+                          ></span>
                           <span className="text-sm text-gray-700">{tip}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
+                </div>
+              )}
+
+              {/* 印刷ボタンをコツとアドバイスの下に配置（下書き・線画のステップのみ） */}
+              {step.stepType === "lineart" && (
+                <div className="mt-6 flex justify-center">
+                  <ImagePrintOrganizer
+                    imageUrl={getCurrentStepImage(currentStepNumber)}
+                    stepTitle={step.title}
+                    stepNumber={currentStepNumber}
+                    isImageReady={
+                      !loading && stepImages[currentStepNumber - 1] !== null
+                    }
+                  />
                 </div>
               )}
             </div>

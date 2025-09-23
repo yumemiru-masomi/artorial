@@ -16,6 +16,7 @@ interface UseStepImageGenerationReturn {
   loading: boolean;
   generateCurrentStepImage: (stepIndex: number) => Promise<void>;
   getCurrentStepImage: (currentStepNumber: number) => string;
+  regenerateStepImage: (stepIndex: number) => Promise<void>;
 }
 
 export function useStepImageGeneration({
@@ -112,10 +113,47 @@ export function useStepImageGeneration({
     [stepImages, originalImageUrl]
   );
 
+  // 指定したステップの画像を再生成する関数
+  const regenerateStepImage = useCallback(
+    async (stepIndex: number) => {
+      console.log(`🔄 ステップ${stepIndex + 1}の画像を再生成します...`);
+
+      try {
+        setLoading(true);
+
+        // 既存の画像をクリア
+        setStepImages((prev) => {
+          const newArray = [...prev];
+          newArray[stepIndex] = null;
+          return newArray;
+        });
+
+        const currentImageUrl = await generateStepImage(stepIndex);
+
+        if (currentImageUrl) {
+          setStepImages((prev) => {
+            const newArray = [...prev];
+            newArray[stepIndex] = currentImageUrl;
+            return newArray;
+          });
+          console.log(`✅ ステップ${stepIndex + 1}の画像再生成完了`);
+        } else {
+          console.warn(`⚠️ ステップ${stepIndex + 1}の画像再生成に失敗`);
+        }
+      } catch (error) {
+        console.error(`❌ ステップ${stepIndex + 1}の画像再生成エラー:`, error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [generateStepImage]
+  );
+
   return {
     stepImages,
     loading,
     generateCurrentStepImage,
     getCurrentStepImage,
+    regenerateStepImage,
   };
 }
