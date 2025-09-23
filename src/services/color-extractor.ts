@@ -85,7 +85,7 @@ export async function extractColorsFromBuffer(
     const processedColors = new Set<string>();
 
     // まず背景色を追加
-    for (const [colorKey, count] of backgroundColors) {
+    for (const [colorKey] of backgroundColors) {
       if (processedColors.has(colorKey)) continue;
 
       const [r, g, b] = colorKey.split(",").map(Number);
