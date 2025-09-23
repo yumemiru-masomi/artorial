@@ -160,15 +160,6 @@ export default function ImageUpload({
             className="object-contain"
             unoptimized
           />
-          {!disabled && (
-            <button
-              onClick={handleRemove}
-              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-              aria-label="画像を削除"
-            >
-              <X size={16} />
-            </button>
-          )}
         </div>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
@@ -180,11 +171,11 @@ export default function ImageUpload({
       <div
         className={`
           relative w-full h-64 border-2 border-dashed rounded-lg transition-colors cursor-pointer
-          ${dragOver ? "border-blue-400 bg-blue-50" : "border-gray-300"}
+          ${dragOver ? "border-sage bg-sage bg-opacity-10" : "border-gray-300"}
           ${
             disabled
               ? "opacity-50 cursor-not-allowed"
-              : "hover:border-blue-400 hover:bg-gray-50"
+              : "hover:border-sage hover:bg-gray-50"
           }
         `}
         onDragOver={handleDragOver}
@@ -204,13 +195,13 @@ export default function ImageUpload({
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
           {isProcessing ? (
             <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sage mb-4"></div>
               <p className="text-sm text-gray-600">処理中...</p>
             </div>
           ) : (
             <>
-              <div className="mb-4 p-3 bg-blue-100 rounded-full">
-                <Camera className="h-8 w-8 text-blue-600" />
+              <div className="mb-4 p-3 bg-sage bg-opacity-5 rounded-full">
+                <Camera className="h-8 w-8 text-white" />
               </div>
               <h3 className="mb-2 text-lg font-medium text-gray-900">
                 描きたい写真をアップロード

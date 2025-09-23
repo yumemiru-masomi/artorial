@@ -11,11 +11,20 @@ services:
       - HOSTNAME=0.0.0.0
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - TEXT_MODEL_ID=${TEXT_MODEL_ID:-gemini-2.5-flash}
+      - IMAGE_MODEL_ID=${IMAGE_MODEL_ID:-gemini-2.5-flash-image-preview}
     volumes:
       - ./public/uploads:/app/public/uploads
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${PORT:-3000}"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:${PORT:-3000}",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

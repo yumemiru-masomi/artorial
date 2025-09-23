@@ -5,8 +5,8 @@ import {
   ChevronRight,
   Clock,
   Lightbulb,
-  CheckCircle,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect, memo } from "react";
 import {
@@ -57,15 +57,21 @@ const StepGuide = memo(function StepGuide({
 }: StepGuideProps) {
   const [nextStepReady, setNextStepReady] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // 画像生成ロジックをカスタムフックに分離
-  const { stepImages, loading, generateCurrentStepImage, getCurrentStepImage } =
-    useStepImageGeneration({
-      allSteps,
-      originalImageUrl,
-      material,
-      category,
-    });
+  const {
+    stepImages,
+    loading,
+    generateCurrentStepImage,
+    getCurrentStepImage,
+    regenerateStepImage,
+  } = useStepImageGeneration({
+    allSteps,
+    originalImageUrl,
+    material,
+    category,
+  });
 
   // 初回ロード時に現在のステップの画像のみ生成（コスト削減）
   useEffect(() => {
@@ -138,17 +144,20 @@ const StepGuide = memo(function StepGuide({
         {/* 進捗バー */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-semibold header-text">
               ステップ {currentStepNumber} / {totalSteps}
             </span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm font-medium header-text opacity-90">
               {Math.round((currentStepNumber / totalSteps) * 100)}% 完了
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+          <div className="w-full bg-white bg-opacity-30 rounded-full h-2 border border-white border-opacity-40">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(currentStepNumber / totalSteps) * 100}%` }}
+              className="h-full rounded-full transition-all duration-500 shadow-sm border border-amber-700"
+              style={{
+                width: `${(currentStepNumber / totalSteps) * 100}%`,
+                backgroundColor: "#B8860B",
+              }}
             ></div>
           </div>
 
@@ -159,26 +168,18 @@ const StepGuide = memo(function StepGuide({
           {/* 画像セクション */}
           <div className="space-y-6">
             {/* ステップ画像セクション */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
+            <div className="parchment-card rounded-lg p-6">
+              <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">
                   ステップ {currentStepNumber}: {step.title}
                 </h3>
-                <ImagePrintOrganizer
-                  imageUrl={getCurrentStepImage(currentStepNumber)}
-                  stepTitle={step.title}
-                  stepNumber={currentStepNumber}
-                  isImageReady={
-                    !loading && stepImages[currentStepNumber - 1] !== null
-                  }
-                />
               </div>
 
               <div className="relative w-full aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
                 {loading ? (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
-                      <Loader2 className="animate-spin h-12 w-12 mx-auto text-blue-600 mb-4" />
+                      <Loader2 className="animate-spin h-12 w-12 mx-auto text-sage mb-4" />
                       <p className="text-gray-500 text-sm">画像生成中...</p>
                     </div>
                   </div>
@@ -192,26 +193,55 @@ const StepGuide = memo(function StepGuide({
                   />
                 )}
               </div>
+
+              {/* 再生成ボタンを画像の直下に配置 */}
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={() => regenerateStepImage(currentStepNumber - 1)}
+                  disabled={loading}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-sage-light hover:text-sage disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                  />
+                  {loading ? "生成中..." : "画像を再生成"}
+                </button>
+              </div>
             </div>
           </div>
 
           {/* 手順セクション */}
           <div className="space-y-6">
             {/* ステップ詳細 */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center mb-4">
-                <div className="bg-blue-100 text-blue-600 rounded-full p-2 mr-3">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
+            <div className="parchment-card rounded-lg p-6">
+              <div className="mb-4">
                 <h2 className="text-xl font-bold text-gray-900">
                   {step.title}
                 </h2>
               </div>
 
               <div className="mb-6">
-                <p className="text-gray-700 leading-relaxed">
-                  {step.description}
-                </p>
+                <div className="text-gray-700 leading-relaxed">
+                  {step.description && step.description.length > 150 ? (
+                    <>
+                      <p>
+                        {isDescriptionExpanded
+                          ? step.description
+                          : `${step.description.substring(0, 150)}...`}
+                      </p>
+                      <button
+                        onClick={() =>
+                          setIsDescriptionExpanded(!isDescriptionExpanded)
+                        }
+                        className="mt-2 text-sage-light hover:text-sage underline text-sm font-medium"
+                      >
+                        {isDescriptionExpanded ? "閉じる" : "もっと見る"}
+                      </button>
+                    </>
+                  ) : (
+                    <p>{step.description}</p>
+                  )}
+                </div>
               </div>
 
               {/* 推定時間 */}
@@ -224,21 +254,38 @@ const StepGuide = memo(function StepGuide({
               {step.tips && step.tips.length > 0 && (
                 <div className="mb-6">
                   <div className="flex items-center mb-3">
-                    <Lightbulb className="w-4 h-4 text-yellow-500 mr-2" />
+                    <Lightbulb className="w-4 h-4 text-amber-600 mr-2" />
                     <h3 className="font-semibold text-gray-900">
                       コツとアドバイス
                     </h3>
                   </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <ul className="space-y-2">
                       {step.tips.map((tip, index) => (
                         <li key={index} className="flex items-start">
-                          <span className="flex-shrink-0 w-1.5 h-1.5 bg-yellow-400 rounded-full mt-2 mr-3"></span>
+                          <span
+                            className="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2 mr-3"
+                            style={{ backgroundColor: "#B8860B" }}
+                          ></span>
                           <span className="text-sm text-gray-700">{tip}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
+                </div>
+              )}
+
+              {/* 印刷ボタンをコツとアドバイスの下に配置（下書き・線画のステップのみ） */}
+              {step.stepType === "lineart" && (
+                <div className="mt-6 flex justify-center">
+                  <ImagePrintOrganizer
+                    imageUrl={getCurrentStepImage(currentStepNumber)}
+                    stepTitle={step.title}
+                    stepNumber={currentStepNumber}
+                    isImageReady={
+                      !loading && stepImages[currentStepNumber - 1] !== null
+                    }
+                  />
                 </div>
               )}
             </div>
@@ -263,7 +310,7 @@ const StepGuide = memo(function StepGuide({
             className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               isFirstStep
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-md"
+                : "bg-sage text-white hover:bg-sage hover:shadow-md"
             }`}
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
@@ -271,7 +318,7 @@ const StepGuide = memo(function StepGuide({
           </button>
 
           <div className="text-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm font-medium header-text">
               ステップ {currentStepNumber} / {totalSteps}
             </p>
           </div>
@@ -282,7 +329,7 @@ const StepGuide = memo(function StepGuide({
             className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               !nextStepReady
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:scale-105"
+                : "bg-sage-light text-white hover:bg-sage-light hover:shadow-lg transform hover:scale-105"
             }`}
           >
             {isLastStep ? (
@@ -305,7 +352,7 @@ const StepGuide = memo(function StepGuide({
       {/* 完了確認モーダル */}
       {showCompletionModal && (
         <div className="fixed inset-0 bg-gray-500/25 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="parchment-card rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               手順完了の確認
             </h3>
@@ -321,7 +368,7 @@ const StepGuide = memo(function StepGuide({
               </button>
               <button
                 onClick={handleCompletionConfirm}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-sage text-white rounded-lg hover:bg-sage transition-colors"
               >
                 OK
               </button>

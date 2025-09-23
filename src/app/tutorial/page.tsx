@@ -2,9 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { RefreshCw, Trophy } from "lucide-react";
 import StepGuide from "@/components/StepGuide";
 import { useTutorial } from "@/hooks/useTutorial";
+import StepGenerationLoadingWalkthrough from "@/components/StepGenerationLoadingWalkthrough";
 import {
   StepGenerationResponse,
   ImageAnalysisResponse,
@@ -134,35 +134,7 @@ function TutorialPageContent() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-blue-100 rounded-full">
-            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            描画手順を生成中...
-          </h2>
-          <p className="text-gray-600 mb-4">
-            {tutorialData &&
-              (materialNames[
-                tutorialData.material as keyof typeof materialNames
-              ] ||
-                materialNames.acrylic)}
-            での段階的な手順を作成しています
-          </p>
-          <div className="w-64 bg-gray-200 rounded-full h-2 mx-auto">
-            <div
-              className="bg-blue-600 h-2 rounded-full animate-pulse"
-              style={{ width: "70%" }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-500 mt-2">
-            通常45秒ほどかかります...
-          </p>
-        </div>
-      </div>
-    );
+    return <StepGenerationLoadingWalkthrough />;
   }
 
   if (error) {
@@ -205,32 +177,20 @@ function TutorialPageContent() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="max-w-lg text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 bg-green-100 rounded-full">
-            <Trophy className="w-10 h-10 text-green-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold header-text mb-4">
             おめでとうございます！
           </h2>
-          <p className="text-xl text-gray-600 mb-2">
-            {tutorialData &&
-              (materialNames[
-                tutorialData.material as keyof typeof materialNames
-              ] ||
-                materialNames.acrylic)}
-            の手順が完了しました
-          </p>
-          <p className="text-gray-500 mb-8">
-            推定時間: {stepsData.totalEstimatedTime}分 |{" "}
-            {stepsData.steps.length}ステップ完了
+          <p className="text-xl header-text opacity-90 mb-2">
+            アクリル絵の具の絵が完成しました
           </p>
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
-            <h3 className="text-lg font-semibold text-green-800 mb-2">
+          <div className="parchment-card rounded-lg p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               完了した内容
             </h3>
             <div className="text-left space-y-2">
               {stepsData.steps.map((step, index) => (
-                <div key={index} className="flex items-center text-green-700">
+                <div key={index} className="flex items-center text-gray-700">
                   <svg
                     className="w-4 h-4 mr-2 text-green-600"
                     fill="none"
@@ -244,7 +204,7 @@ function TutorialPageContent() {
                       d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  <span className="text-sm">{step.title}</span>
+                  <span className="text-sm text-gray-900">{step.title}</span>
                 </div>
               ))}
             </div>
@@ -253,7 +213,7 @@ function TutorialPageContent() {
           <div className="space-x-4">
             <button
               onClick={handleBackToHome}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-8 py-3 bg-white text-gray-600 rounded-lg hover:bg-gray-50 transition-colors border border-gray-300"
             >
               新しい画像で始める
             </button>
@@ -270,20 +230,13 @@ function TutorialPageContent() {
   const currentStepData = stepsData.steps[currentStep - 1];
 
   return (
-    <div className="min-h-screen py-8">
-      {/* ヘッダー */}
+    <div className="py-8">
+      {/* ページタイトル */}
       <div className="mb-8">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {tutorialData &&
-                (materialNames[
-                  tutorialData.material as keyof typeof materialNames
-                ] ||
-                  materialNames.acrylic)}
-              の描画手順
-            </h1>
-            <div className="text-sm text-gray-600">
+            <h2 className="text-2xl font-bold header-text">絵を描く手順</h2>
+            <div className="text-sm header-text opacity-80">
               推定時間: {stepsData.totalEstimatedTime}分
             </div>
           </div>

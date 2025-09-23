@@ -144,7 +144,7 @@ export default function ColorRecipeModal({
               </div>
 
               {/* レシピ一覧 */}
-              {recipe.recipes.map((recipeItem, index) => (
+              {recipe.recipes.slice(0, 1).map((recipeItem, index) => (
                 <RecipeCard key={index} recipe={recipeItem} index={index} />
               ))}
 

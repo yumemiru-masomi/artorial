@@ -1,69 +1,69 @@
 # Cloud Build 設定ファイル
 steps:
   # Docker イメージのビルド
-  - name: 'gcr.io/cloud-builders/docker'
+  - name: "gcr.io/cloud-builders/docker"
     args:
-      - 'build'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/artorial:$COMMIT_SHA'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/artorial:latest'
-      - '--cache-from'
-      - 'gcr.io/$PROJECT_ID/artorial:latest'
-      - '.'
+      - "build"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/artorial:$COMMIT_SHA"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/artorial:latest"
+      - "--cache-from"
+      - "gcr.io/$PROJECT_ID/artorial:latest"
+      - "."
 
   # Container Registry にプッシュ
-  - name: 'gcr.io/cloud-builders/docker'
+  - name: "gcr.io/cloud-builders/docker"
     args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/artorial:$COMMIT_SHA'
+      - "push"
+      - "gcr.io/$PROJECT_ID/artorial:$COMMIT_SHA"
 
-  - name: 'gcr.io/cloud-builders/docker'
+  - name: "gcr.io/cloud-builders/docker"
     args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/artorial:latest'
+      - "push"
+      - "gcr.io/$PROJECT_ID/artorial:latest"
 
   # Cloud Run にデプロイ
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
-      - 'run'
-      - 'deploy'
-      - 'artorial'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/artorial:$COMMIT_SHA'
-      - '--region'
-      - '${_REGION}'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--port'
-      - '3000'
-      - '--memory'
-      - '${_MEMORY}'
-      - '--cpu'
-      - '${_CPU}'
-      - '--min-instances'
-      - '${_MIN_INSTANCES}'
-      - '--max-instances'
-      - '${_MAX_INSTANCES}'
-      - '--set-env-vars'
-      - 'NODE_ENV=production,PORT=3000,HOSTNAME=0.0.0.0,TEXT_MODEL_ID=gemini-2.5-flash'
-      - '--set-secrets'
-      - 'GEMINI_API_KEY=gemini-api-key:latest'
+      - "run"
+      - "deploy"
+      - "artorial"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/artorial:$COMMIT_SHA"
+      - "--region"
+      - "${_REGION}"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--port"
+      - "3000"
+      - "--memory"
+      - "${_MEMORY}"
+      - "--cpu"
+      - "${_CPU}"
+      - "--min-instances"
+      - "${_MIN_INSTANCES}"
+      - "--max-instances"
+      - "${_MAX_INSTANCES}"
+      - "--set-env-vars"
+      - "NODE_ENV=production,PORT=3000,HOSTNAME=0.0.0.0,TEXT_MODEL_ID=gemini-2.5-flash,IMAGE_MODEL_ID=gemini-2.5-flash-image-preview"
+      - "--set-secrets"
+      - "GEMINI_API_KEY=gemini-api-key:latest"
 
 # ビルド設定
 options:
-  machineType: 'E2_HIGHCPU_8'
+  machineType: "E2_HIGHCPU_8"
   logging: CLOUD_LOGGING_ONLY
 
 # 変数のデフォルト値
 substitutions:
   _REGION: asia-northeast1
   _MEMORY: 1Gi
-  _CPU: '1'
-  _MIN_INSTANCES: '0'
-  _MAX_INSTANCES: '10'
+  _CPU: "1"
+  _MIN_INSTANCES: "0"
+  _MAX_INSTANCES: "10"
 
 # タグ
 tags:
