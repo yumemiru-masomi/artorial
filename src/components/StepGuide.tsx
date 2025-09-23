@@ -20,6 +20,9 @@ import Image from "next/image";
 import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
 import { getColorsForStep, getStepTypeLabel } from "@/lib/color-mapping";
 import ColorPalette from "@/components/ColorPalette";
+import ImagePrintOrganizer, {
+  ImagePrintOrganizerProps,
+} from "@/components/ImagePrintOrganizer";
 
 interface StepGuideProps {
   step: GeneratedStep;
@@ -161,6 +164,14 @@ const StepGuide = memo(function StepGuide({
                 <h3 className="text-lg font-semibold text-gray-900">
                   ステップ {currentStepNumber}: {step.title}
                 </h3>
+                <ImagePrintOrganizer
+                  imageUrl={getCurrentStepImage(currentStepNumber)}
+                  stepTitle={step.title}
+                  stepNumber={currentStepNumber}
+                  isImageReady={
+                    !loading && stepImages[currentStepNumber - 1] !== null
+                  }
+                />
               </div>
 
               <div className="relative w-full aspect-square bg-gray-50 rounded-lg overflow-hidden border border-gray-200">

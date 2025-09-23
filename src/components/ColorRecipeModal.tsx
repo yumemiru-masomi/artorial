@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { X, Loader2, Palette, ArrowRight } from "lucide-react";
 import { ColorRecipeResponse, ColorRecipe } from "@/types/color-recipe";
 import { ApiResponse } from "@/types/api";
@@ -23,14 +23,7 @@ export default function ColorRecipeModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // モーダルが開かれた時に混色レシピを取得
-  useEffect(() => {
-    if (isOpen && targetColor.hex) {
-      fetchColorRecipe();
-    }
-  }, [isOpen, targetColor.hex]);
-
-  const fetchColorRecipe = async () => {
+  const fetchColorRecipe = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -63,7 +56,14 @@ export default function ColorRecipeModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [targetColor.hex]);
+
+  // モーダルが開かれた時に混色レシピを取得
+  useEffect(() => {
+    if (isOpen && targetColor.hex) {
+      fetchColorRecipe();
+    }
+  }, [isOpen, targetColor.hex, fetchColorRecipe]);
 
   if (!isOpen) return null;
 
@@ -145,12 +145,7 @@ export default function ColorRecipeModal({
 
               {/* レシピ一覧 */}
               {recipe.recipes.map((recipeItem, index) => (
-                <RecipeCard
-                  key={index}
-                  recipe={recipeItem}
-                  index={index}
-                  targetColor={recipe.target}
-                />
+                <RecipeCard key={index} recipe={recipeItem} index={index} />
               ))}
 
               {recipe.recipes.length === 0 && (
@@ -167,15 +162,7 @@ export default function ColorRecipeModal({
 }
 
 // 個別のレシピカードコンポーネント
-function RecipeCard({
-  recipe,
-  index,
-  targetColor,
-}: {
-  recipe: ColorRecipe;
-  index: number;
-  targetColor: string;
-}) {
+function RecipeCard({ recipe, index }: { recipe: ColorRecipe; index: number }) {
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
