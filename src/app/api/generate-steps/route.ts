@@ -4,7 +4,7 @@ import { StepGenerationResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { dynamicStepGenerator } from "@/services/dynamic-step-generator";
 
-const VALID_MATERIALS: Material[] = ["acrylic"]; //あとで消す
+const VALID_MATERIALS: Material[] = ["acrylic"];
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {

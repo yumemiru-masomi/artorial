@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 interface PrintableImageProps {
   imageUrl: string;
   stepTitle: string;
   stepNumber: number;
-  componentRef: React.MutableRefObject<HTMLDivElement | null>;
+  componentRef: React.RefObject<HTMLDivElement>;
 }
 
 /**
@@ -31,11 +32,13 @@ const PrintableImage: React.FC<PrintableImageProps> = ({
         </div>
 
         {/* 画像表示 */}
-        <div className="flex-1 flex items-center justify-center max-w-full">
-          <img
+        <div className="flex-1 flex items-center justify-center max-w-full relative">
+          <Image
             src={imageUrl}
             alt={`ステップ${stepNumber}: ${stepTitle} - 下書き画像`}
-            className="max-w-full max-h-[70vh] object-contain print-image"
+            fill
+            className="object-contain print-image"
+            unoptimized={true}
           />
         </div>
       </div>

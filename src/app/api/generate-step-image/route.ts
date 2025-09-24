@@ -6,6 +6,8 @@ import { generateLineArtPrompt } from "@/services/prompts/common-lineart";
 import {
   generateCharacterPrompt,
   generateCharacterPromptByType,
+  generateAnimalPrompt,
+  generateAnimalPromptByType,
 } from "@/services/prompts/character-prompts";
 import {
   generateLandscapePrompt,
@@ -161,7 +163,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  * - landscape: "風景画" → 風景画プロンプト
  * - portrait: "人物画" → キャラクタープロンプト
  * - character: "キャラクター画" → キャラクタープロンプト
- * - animal: "動物画" → キャラクタープロンプト
+ * - animal: "動物画" → 動物専用プロンプト
  * - still_life: "静物画" → 静物プロンプト
  * - architecture: "建築物" → 静物プロンプト
  * - abstract: "抽象画" → その他プロンプト
@@ -184,8 +186,10 @@ function generateCategoryPrompt(
     switch (category) {
       case "portrait":
       case "character":
-      case "animal":
         return generateCharacterPromptByType(stepType, stepDescription);
+
+      case "animal":
+        return generateAnimalPromptByType(stepType, stepDescription);
 
       case "landscape":
         return generateLandscapePromptByType(stepType, stepDescription);
@@ -222,8 +226,10 @@ function generateCategoryPrompt(
 
     case "portrait":
     case "character":
-    case "animal":
       return generateCharacterPrompt(stepDescription);
+
+    case "animal":
+      return generateAnimalPrompt(stepDescription);
 
     case "still_life":
     case "architecture":

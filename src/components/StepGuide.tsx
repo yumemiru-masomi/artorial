@@ -20,9 +20,7 @@ import Image from "next/image";
 import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
 import { getColorsForStep, getStepTypeLabel } from "@/lib/color-mapping";
 import ColorPalette from "@/components/ColorPalette";
-import ImagePrintOrganizer, {
-  ImagePrintOrganizerProps,
-} from "@/components/ImagePrintOrganizer";
+import ImagePrintOrganizer from "@/components/ImagePrintOrganizer";
 
 interface StepGuideProps {
   step: GeneratedStep;
@@ -154,8 +152,6 @@ const StepGuide = memo(function StepGuide({
               }}
             ></div>
           </div>
-
-          {/* 画像生成進捗表示を削除 */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

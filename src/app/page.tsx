@@ -18,6 +18,7 @@ export default function Home() {
     null
   );
   const [showMaterialsModal, setShowMaterialsModal] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(false);
 
   const handleImageSelect = async (file: File) => {
     reset();
@@ -31,7 +32,10 @@ export default function Home() {
   const handleImageRemove = () => {
     setSelectedFile(null);
     setSelectedMaterial(null);
+    setResetTrigger(true);
     reset();
+    // リセットトリガーを即座にfalseに戻す
+    setTimeout(() => setResetTrigger(false), 0);
   };
 
   const handleStartAnalysis = async () => {
@@ -93,6 +97,7 @@ export default function Home() {
               onImageRemove={handleImageRemove}
               isProcessing={isProcessing}
               error={error || undefined}
+              resetTrigger={resetTrigger}
             />
             {selectedFile && (
               <div className="mt-6 flex justify-center space-x-4">

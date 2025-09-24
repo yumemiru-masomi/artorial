@@ -129,10 +129,6 @@ function TutorialPageContent() {
     router.push("/");
   };
 
-  const materialNames = {
-    acrylic: "アクリル絵の具",
-  };
-
   if (isLoading) {
     return <StepGenerationLoadingWalkthrough />;
   }

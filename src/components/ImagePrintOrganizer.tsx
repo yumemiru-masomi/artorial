@@ -182,7 +182,7 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
           imageUrl={imageUrl}
           stepTitle={stepTitle}
           stepNumber={stepNumber}
-          componentRef={componentRef}
+          componentRef={componentRef as React.RefObject<HTMLDivElement>}
         />
       </div>
     </>

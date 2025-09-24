@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Upload, X, Camera } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Upload, Camera } from "lucide-react";
 import NextImage from "next/image";
 
 interface ImageUploadProps {
@@ -10,6 +10,7 @@ interface ImageUploadProps {
   isProcessing?: boolean;
   disabled?: boolean;
   error?: string;
+  resetTrigger?: boolean; // リセット要求のトリガー
 }
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -22,10 +23,21 @@ export default function ImageUpload({
   isProcessing = false,
   disabled = false,
   error,
+  resetTrigger,
 }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 外部からのリセット要求を監視
+  useEffect(() => {
+    if (resetTrigger === true) {
+      setPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }, [resetTrigger]);
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -132,14 +144,6 @@ export default function ImageUpload({
     const file = e.dataTransfer.files?.[0];
     if (file) {
       handleFileSelect(file);
-    }
-  };
-
-  const handleRemove = () => {
-    setPreview(null);
-    onImageRemove();
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
     }
   };
 
