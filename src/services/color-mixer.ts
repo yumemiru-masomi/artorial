@@ -25,8 +25,6 @@ interface LAB {
  * 指定された色に最も近い混色レシピを計算で生成
  */
 export function calculateColorRecipe(targetHex: string): ColorRecipeResponse {
-  console.log("🎨 数学的混色計算開始:", targetHex);
-
   const targetRgb = hexToRgb(targetHex);
   const targetLab = rgbToLab(targetRgb);
 
@@ -48,8 +46,6 @@ export function calculateColorRecipe(targetHex: string): ColorRecipeResponse {
   if (threeColorRecipe) {
     recipes.push(threeColorRecipe);
   }
-
-  console.log("✅ 混色計算完了:", recipes.length, "レシピ");
 
   return {
     target: targetHex,

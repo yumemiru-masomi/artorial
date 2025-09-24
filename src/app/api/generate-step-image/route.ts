@@ -6,6 +6,8 @@ import { generateLineArtPrompt } from "@/services/prompts/common-lineart";
 import {
   generateCharacterPrompt,
   generateCharacterPromptByType,
+  generateAnimalPrompt,
+  generateAnimalPromptByType,
 } from "@/services/prompts/character-prompts";
 import {
   generateLandscapePrompt,
@@ -161,7 +163,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  * - landscape: "風景画" → 風景画プロンプト
  * - portrait: "人物画" → キャラクタープロンプト
  * - character: "キャラクター画" → キャラクタープロンプト
- * - animal: "動物画" → キャラクタープロンプト
+ * - animal: "動物画" → 動物専用プロンプト
  * - still_life: "静物画" → 静物プロンプト
  * - architecture: "建築物" → 静物プロンプト
  * - abstract: "抽象画" → その他プロンプト
@@ -173,16 +175,10 @@ function generateCategoryPrompt(
   category: ImageCategory,
   stepType?: string
 ): string {
-  console.log(
-    `🎨 プロンプト生成: ${category}, ステップ${stepNumber}, タイプ: ${stepType}`
-  );
-  console.log(`📝 ステップ説明: "${stepDescription}"`);
-
   // ステップタイプが指定されている場合は、それを優先
   if (stepType) {
     // 線画は全カテゴリ共通
     if (stepType === "lineart") {
-      console.log("✅ 線画プロンプト（stepType指定）");
       return generateLineArtPrompt();
     }
 
@@ -190,27 +186,24 @@ function generateCategoryPrompt(
     switch (category) {
       case "portrait":
       case "character":
-      case "animal":
-        console.log(`✅ キャラクター専用プロンプト（stepType: ${stepType}）`);
         return generateCharacterPromptByType(stepType, stepDescription);
 
+      case "animal":
+        return generateAnimalPromptByType(stepType, stepDescription);
+
       case "landscape":
-        console.log(`✅ 風景画専用プロンプト（stepType: ${stepType}）`);
         return generateLandscapePromptByType(stepType, stepDescription);
 
       case "still_life":
       case "architecture":
-        console.log(`✅ 静物・建築画専用プロンプト（stepType: ${stepType}）`);
         return generateStillLifePromptByType(stepType, stepDescription);
 
       default:
-        console.log(`✅ 抽象画・その他専用プロンプト（stepType: ${stepType}）`);
         return generateAbstractPromptByType(stepType, stepDescription);
     }
   }
 
   // フォールバック: 従来の文字列マッチング
-  console.log("⚠️ フォールバック: 文字列マッチングを使用");
 
   // ステップ1: 線画（全カテゴリ共通）
   if (
@@ -223,29 +216,26 @@ function generateCategoryPrompt(
     stepDescription.toLowerCase().includes("sketch") ||
     stepDescription.toLowerCase().includes("outline")
   ) {
-    console.log("✅ 線画プロンプト（フォールバック）");
     return generateLineArtPrompt();
   }
 
   // ステップ2以降: カテゴリ別分岐
   switch (category) {
     case "landscape":
-      console.log("✅ 風景画プロンプト（フォールバック）");
       return generateLandscapePrompt(stepDescription);
 
     case "portrait":
     case "character":
-    case "animal":
-      console.log("✅ キャラクタープロンプト（フォールバック）");
       return generateCharacterPrompt(stepDescription);
+
+    case "animal":
+      return generateAnimalPrompt(stepDescription);
 
     case "still_life":
     case "architecture":
-      console.log("✅ 静物・建築物プロンプト（フォールバック）");
       return generateStillLifePrompt(stepDescription);
 
     default:
-      console.log("✅ 抽象画・その他プロンプト（フォールバック）");
       return generateAbstractPrompt(stepDescription);
   }
 }

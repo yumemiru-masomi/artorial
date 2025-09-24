@@ -12,10 +12,8 @@ const ONBOARDING_MESSAGES = [
   "Artorialは、アクリル絵の具でを描くことを通して",
   "リラックスや、リフレッシュしてもらうことを目的としています",
   "絵を上手く描こう、綺麗に仕上げようとは思わなくて大丈夫です",
-  "これから、私が絵の書き方をお伝えしますので",
-  "あなたのお好きな絵を、お好きな時に書いて下さい",
-  "私は色の作り方や書き方をお伝えしますが",
-  "どんどんご自身の好きな色や形にアレンジしてください",
+  "これから、私が絵の描き方をお伝えしますので",
+  "あなたのお好きな絵を、お好きな時にお好きな形や色で描いて下さい",
   "それでは、自由に自分らしい絵を描くことをお楽しみください",
 ];
 
@@ -89,6 +87,16 @@ export default function OnboardingWalkthrough({
           </p>
         </div>
 
+        {/* 小さなskipボタン - 最終画面では非表示 */}
+        {!showMaterialsButton && (
+          <button
+            onClick={handleCompleteOnboarding}
+            className="text-white text-opacity-50 hover:text-opacity-80 transition-colors text-sm underline mt-2"
+          >
+            skip
+          </button>
+        )}
+
         {showMaterialsButton && (
           <div className="mt-12 space-y-4 animate-fade-in">
             <button
@@ -102,7 +110,7 @@ export default function OnboardingWalkthrough({
                 onClick={handleCompleteOnboarding}
                 className="text-white text-opacity-70 hover:text-opacity-100 transition-colors underline"
               >
-                スキップして始める
+                用意できたので、始める
               </button>
             </div>
           </div>

@@ -6,7 +6,6 @@
 interface SessionData {
   selectedFile?: string;
   selectedMaterial?: string;
-  textureStrength?: string;
 }
 
 class SessionStorageManager {
@@ -125,8 +124,7 @@ export const sessionStorageManager = new SessionStorageManager();
 // 型安全なヘルパー関数
 export const saveImageAnalysisSession = (
   file: File,
-  material: string,
-  textureStrength: number
+  material: string
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -135,7 +133,6 @@ export const saveImageAnalysisSession = (
         sessionStorageManager.setBatchData({
           selectedFile: reader.result as string,
           selectedMaterial: material,
-          textureStrength: textureStrength.toString(),
         });
         resolve();
       } else {
@@ -151,12 +148,11 @@ export const loadImageAnalysisSession = (): Partial<SessionData> => {
   return sessionStorageManager.getBatchData([
     "selectedFile",
     "selectedMaterial",
-    "textureStrength",
   ]);
 };
 
 export const clearImageAnalysisSession = (): void => {
-  ["selectedFile", "selectedMaterial", "textureStrength"].forEach((key) => {
+  ["selectedFile", "selectedMaterial"].forEach((key) => {
     sessionStorageManager.clearData(key as keyof SessionData);
   });
 };

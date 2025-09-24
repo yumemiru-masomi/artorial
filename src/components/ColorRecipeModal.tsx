@@ -28,8 +28,6 @@ export default function ColorRecipeModal({
     setError(null);
 
     try {
-      console.log("🎨 混色レシピ取得開始:", targetColor.hex);
-
       const response = await fetch("/api/color-recipe", {
         method: "POST",
         headers: {
@@ -49,9 +47,7 @@ export default function ColorRecipeModal({
       }
 
       setRecipe(result.data ?? null);
-      console.log("✅ 混色レシピ取得成功:", result.data);
     } catch (err) {
-      console.error("❌ 混色レシピ取得エラー:", err);
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
       setLoading(false);

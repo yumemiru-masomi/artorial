@@ -20,9 +20,7 @@ import Image from "next/image";
 import { useStepImageGeneration } from "@/hooks/useStepImageGeneration";
 import { getColorsForStep, getStepTypeLabel } from "@/lib/color-mapping";
 import ColorPalette from "@/components/ColorPalette";
-import ImagePrintOrganizer, {
-  ImagePrintOrganizerProps,
-} from "@/components/ImagePrintOrganizer";
+import ImagePrintOrganizer from "@/components/ImagePrintOrganizer";
 
 interface StepGuideProps {
   step: GeneratedStep;
@@ -126,17 +124,11 @@ const StepGuide = memo(function StepGuide({
   };
 
   // 現在のステップで使用する色を取得（Gemini分類を優先）
-  console.log("🔍 StepGuide - stepColors:", stepColors);
-  console.log("🔍 StepGuide - step.stepType:", step.stepType);
-  console.log("🔍 StepGuide - dominantColors:", dominantColors);
-
   const currentStepColors = getColorsForStep(
     step.stepType,
     dominantColors,
     stepColors
   );
-
-  console.log("🔍 StepGuide - currentStepColors:", currentStepColors);
 
   return (
     <>
@@ -160,8 +152,6 @@ const StepGuide = memo(function StepGuide({
               }}
             ></div>
           </div>
-
-          {/* 画像生成進捗表示を削除 */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -224,7 +214,7 @@ const StepGuide = memo(function StepGuide({
                 <div className="text-gray-700 leading-relaxed">
                   {step.description && step.description.length > 150 ? (
                     <>
-                      <p>
+                      <p className="whitespace-pre-line">
                         {isDescriptionExpanded
                           ? step.description
                           : `${step.description.substring(0, 150)}...`}
@@ -239,7 +229,7 @@ const StepGuide = memo(function StepGuide({
                       </button>
                     </>
                   ) : (
-                    <p>{step.description}</p>
+                    <p className="whitespace-pre-line">{step.description}</p>
                   )}
                 </div>
               </div>
@@ -295,7 +285,7 @@ const StepGuide = memo(function StepGuide({
               <div className="mt-6">
                 <ColorPalette
                   colors={currentStepColors}
-                  title={`🎨 ${getStepTypeLabel(step.stepType)}で使用する色`}
+                  title={`${getStepTypeLabel(step.stepType)}で使用する色`}
                 />
               </div>
             )}

@@ -71,9 +71,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .toBuffer();
 
     const base64Image = optimizedBuffer.toString("base64");
-    console.log(
-      `📊 画像最適化: ${originalBuffer.length} → ${optimizedBuffer.length} bytes`
-    );
 
     const geminiService = new GeminiService();
 
@@ -124,8 +121,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(response);
     } catch (error) {
       if (error instanceof Error && error.message === "TIMEOUT") {
-        console.log("⚠️ Gemini API タイムアウト - フォールバック色抽出を使用");
-
         // タイムアウト時はフォールバック色抽出を使用
         try {
           const quickColors = await quickColorExtractionPromise;
@@ -149,11 +144,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             },
           };
 
-          console.log(
-            "✅ フォールバック解析完了:",
-            fallbackResponse.data?.dominantColors?.length || 0,
-            "色"
-          );
           return NextResponse.json(fallbackResponse);
         } catch (fallbackError) {
           console.error("❌ フォールバック色抽出も失敗:", fallbackError);

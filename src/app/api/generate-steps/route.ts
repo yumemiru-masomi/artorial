@@ -4,7 +4,7 @@ import { StepGenerationResponse } from "@/types/analysis";
 import { Material } from "@/types/tutorial";
 import { dynamicStepGenerator } from "@/services/dynamic-step-generator";
 
-const VALID_MATERIALS: Material[] = ["acrylic"]; //あとで消す
+const VALID_MATERIALS: Material[] = ["acrylic"];
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -63,7 +63,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // 固定ステップを取得
-    console.log(`🎯 固定ステップ生成: カテゴリ=${analysisResult.category}`);
 
     const { getStepTemplates, calculateTotalTime } = await import(
       "@/services/step-templates"
@@ -71,15 +70,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const baseSteps = getStepTemplates(analysisResult.category);
     const totalTime = calculateTotalTime(baseSteps);
 
-    console.log(`📋 基本ステップ一覧:`, baseSteps);
-    console.log(`⏱️ 総推定時間: ${totalTime}分`);
-
     // 画像ファイルをBase64に変換
     const fileBuffer = await file.arrayBuffer();
     const base64Image = Buffer.from(fileBuffer).toString("base64");
 
     // 動的にステップ説明を生成
-    console.log("🎨 動的ステップ説明を生成中...");
     const steps = await dynamicStepGenerator.generateDynamicDescriptions(
       baseSteps,
       analysisResult,

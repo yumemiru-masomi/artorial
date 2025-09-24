@@ -35,10 +35,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // 数学的計算による混色レシピ生成（APIを使わない高速処理）
-    console.log("🎨 数学的混色計算開始:", targetHex);
     const colorRecipe = calculateColorRecipe(targetHex);
-
-    console.log("✅ 混色レシピ取得成功:", colorRecipe);
 
     const successResponse: ApiResponse<ColorRecipeResponse> = {
       success: true,
@@ -47,8 +44,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(successResponse);
   } catch (error) {
-    console.error("🚨 混色計算エラー:", error);
-
     const errorResponse: ApiResponse<null> = {
       success: false,
       error: {

@@ -18,8 +18,6 @@ export async function extractColorsFromBuffer(
   imageBuffer: Buffer
 ): Promise<ExtractedColor[]> {
   try {
-    console.log("🎨 Sharp.jsによる背景重視色抽出開始");
-
     // 画像を適度なサイズにリサイズ（背景判定のため少し大きめ）
     const resizedBuffer = await sharp(imageBuffer)
       .resize(120, 120, { fit: "inside" })
@@ -122,11 +120,8 @@ export async function extractColorsFromBuffer(
       processedColors.add(colorKey);
     }
 
-    console.log("✅ 背景重視色抽出完了:", colors.length, "色");
-    console.log("🎯 背景色候補:", backgroundColors.length, "色検出");
     return colors;
   } catch (error) {
-    console.warn("⚠️ Sharp.js色抽出に失敗:", error);
     return getFallbackColors();
   }
 }
