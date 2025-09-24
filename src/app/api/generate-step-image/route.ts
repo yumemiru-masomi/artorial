@@ -173,16 +173,10 @@ function generateCategoryPrompt(
   category: ImageCategory,
   stepType?: string
 ): string {
-  console.log(
-    `🎨 プロンプト生成: ${category}, ステップ${stepNumber}, タイプ: ${stepType}`
-  );
-  console.log(`📝 ステップ説明: "${stepDescription}"`);
-
   // ステップタイプが指定されている場合は、それを優先
   if (stepType) {
     // 線画は全カテゴリ共通
     if (stepType === "lineart") {
-      console.log("✅ 線画プロンプト（stepType指定）");
       return generateLineArtPrompt();
     }
 
@@ -191,26 +185,21 @@ function generateCategoryPrompt(
       case "portrait":
       case "character":
       case "animal":
-        console.log(`✅ キャラクター専用プロンプト（stepType: ${stepType}）`);
         return generateCharacterPromptByType(stepType, stepDescription);
 
       case "landscape":
-        console.log(`✅ 風景画専用プロンプト（stepType: ${stepType}）`);
         return generateLandscapePromptByType(stepType, stepDescription);
 
       case "still_life":
       case "architecture":
-        console.log(`✅ 静物・建築画専用プロンプト（stepType: ${stepType}）`);
         return generateStillLifePromptByType(stepType, stepDescription);
 
       default:
-        console.log(`✅ 抽象画・その他専用プロンプト（stepType: ${stepType}）`);
         return generateAbstractPromptByType(stepType, stepDescription);
     }
   }
 
   // フォールバック: 従来の文字列マッチング
-  console.log("⚠️ フォールバック: 文字列マッチングを使用");
 
   // ステップ1: 線画（全カテゴリ共通）
   if (
@@ -223,29 +212,24 @@ function generateCategoryPrompt(
     stepDescription.toLowerCase().includes("sketch") ||
     stepDescription.toLowerCase().includes("outline")
   ) {
-    console.log("✅ 線画プロンプト（フォールバック）");
     return generateLineArtPrompt();
   }
 
   // ステップ2以降: カテゴリ別分岐
   switch (category) {
     case "landscape":
-      console.log("✅ 風景画プロンプト（フォールバック）");
       return generateLandscapePrompt(stepDescription);
 
     case "portrait":
     case "character":
     case "animal":
-      console.log("✅ キャラクタープロンプト（フォールバック）");
       return generateCharacterPrompt(stepDescription);
 
     case "still_life":
     case "architecture":
-      console.log("✅ 静物・建築物プロンプト（フォールバック）");
       return generateStillLifePrompt(stepDescription);
 
     default:
-      console.log("✅ 抽象画・その他プロンプト（フォールバック）");
       return generateAbstractPrompt(stepDescription);
   }
 }

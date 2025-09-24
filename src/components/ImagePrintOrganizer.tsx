@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useRef } from "react";
+import React, { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { Printer } from "lucide-react";
 import PrintableImage from "./PrintableImage";
@@ -146,10 +146,7 @@ const ImagePrintOrganizer: React.FC<ImagePrintOrganizerProps> = ({
 
         try {
           await Promise.all(imagePromises);
-          console.log("すべての画像の読み込みが完了しました");
-        } catch (error) {
-          console.warn("画像の読み込み待機中にエラー:", error);
-        }
+        } catch (error) {}
       }
     },
     onAfterPrint: () => {

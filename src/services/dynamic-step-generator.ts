@@ -22,8 +22,6 @@ export class DynamicStepGenerator {
     analysisResult: ImageAnalysisResponse,
     base64Image: string
   ): Promise<GeneratedStep[]> {
-    console.log("🎯 動的ステップ説明生成を開始");
-
     const enhancedSteps = await Promise.all(
       steps.map(async (step, index) => {
         try {
@@ -39,13 +37,11 @@ export class DynamicStepGenerator {
             description: dynamicDescription || step.description, // フォールバック
           };
         } catch (error) {
-          console.warn(`⚠️ ステップ${index + 1}の動的説明生成に失敗:`, error);
           return step; // 元の説明を使用
         }
       })
     );
 
-    console.log("✅ 動的ステップ説明生成完了");
     return enhancedSteps;
   }
 
@@ -73,7 +69,6 @@ export class DynamicStepGenerator {
 
       return this.validateAndCleanDescription(response);
     } catch (error) {
-      console.error(`❌ ステップ${stepNumber}の説明生成エラー:`, error);
       throw error;
     }
   }
@@ -107,9 +102,10 @@ export class DynamicStepGenerator {
 3. アクリル絵の具での描画に特化した指示
 4. 初心者にも分かりやすい具体的な手順
 5. 2-3文で簡潔にまとめる
+6. **重要**: 説明文は300文字以内で収める
 
 【出力形式】
-画像の具体的な要素を含んだ詳細な説明文のみを出力してください。`;
+画像の具体的な要素を含んだ詳細な説明文のみを出力してください（300文字以内）。`;
   }
 
   /**

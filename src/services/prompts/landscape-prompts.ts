@@ -7,8 +7,6 @@ export function generateLandscapePromptByType(
   stepType: string,
   stepDescription: string
 ): string {
-  console.log(`🏞️ 風景画プロンプト（stepType: ${stepType}）`);
-
   switch (stepType) {
     case "background":
       return generateLandscapeBackgroundPrompt(stepDescription);
@@ -17,7 +15,6 @@ export function generateLandscapePromptByType(
     case "details":
       return generateLandscapeDetailsPrompt(stepDescription);
     default:
-      console.log(`⚠️ 未知のstepType: ${stepType}, 汎用プロンプト使用`);
       return generateGenericLandscapePrompt(stepDescription);
   }
 }
@@ -93,8 +90,6 @@ function generateGenericLandscapePrompt(stepDescription: string): string {
 }
 
 export function generateLandscapePrompt(stepDescription: string): string {
-  console.log("🌅 風景画専用プロンプト");
-
   // 背景・遠景（空・山など）
   if (
     stepDescription.includes("背景") ||
@@ -102,7 +97,7 @@ export function generateLandscapePrompt(stepDescription: string): string {
     stepDescription.includes("空") ||
     stepDescription.includes("上部")
   ) {
-    console.log("✅ 風景画背景・遠景専用プロンプト");
+    ("✅ 風景画背景・遠景専用プロンプト");
     return `**【緊急重要】画像の上部（空・遠景）のみを塗り、下部は絶対に塗らないでください！！！**
 
 🚨 **絶対禁止**: 下部要素への色塗り
@@ -156,7 +151,7 @@ export function generateLandscapePrompt(stepDescription: string): string {
     stepDescription.includes("植生") ||
     stepDescription.includes("実際の色で塗る")
   ) {
-    console.log("✅ 風景画前景・水面専用プロンプト");
+    ("✅ 風景画前景・水面専用プロンプト");
     return `**【超重要】画像の下部（水面・前景）のみを塗り、上部は白いまま残してください**
 
 この作業は「風景画の上下分割塗り - 下部のみ」の工程です：
@@ -189,7 +184,7 @@ export function generateLandscapePrompt(stepDescription: string): string {
     stepDescription.includes("建物") ||
     stepDescription.includes("木")
   ) {
-    console.log("✅ 風景画中景専用プロンプト");
+    ("✅ 風景画中景専用プロンプト");
     return `**【超重要】元画像を参照して、中景の主要要素のみを正確な色で塗ってください**
 
 この作業は「風景画の中景・主要要素塗り」の工程です：
@@ -223,7 +218,7 @@ export function generateLandscapePrompt(stepDescription: string): string {
     stepDescription.includes("詳細") ||
     stepDescription.includes("完成")
   ) {
-    console.log("✅ 風景画仕上げ専用プロンプト");
+    ("✅ 風景画仕上げ専用プロンプト");
     return `**【超重要】最小限の細部描き込みのみを行い、既存の色は絶対に変更しないでください**
 
 この作業は「風景画の仕上げ・細部描き込み」の工程です：
@@ -242,7 +237,7 @@ export function generateLandscapePrompt(stepDescription: string): string {
 
   // その他の風景ステップ（汎用）
   else {
-    console.log("✅ 風景画汎用プロンプト");
+    ("✅ 風景画汎用プロンプト");
     return `**【最重要】元画像の色を詳細に観察し、100%忠実に再現して段階的に塗り分けてください**
 
 【実行する手順】

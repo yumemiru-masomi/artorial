@@ -73,13 +73,8 @@ export function useStepImageGeneration({
     async (stepIndex: number) => {
       // 既に生成済みの場合はスキップ
       if (stepImages[stepIndex]) {
-        console.log(
-          `✅ ステップ${stepIndex + 1}の画像は既に生成済み - スキップ`
-        );
         return;
       }
-
-      console.log(`📸 ステップ${stepIndex + 1}の画像を生成中...`);
 
       try {
         setLoading(true);
@@ -91,9 +86,7 @@ export function useStepImageGeneration({
             newArray[stepIndex] = currentImageUrl;
             return newArray;
           });
-          console.log(`✅ ステップ${stepIndex + 1}の画像生成完了`);
         } else {
-          console.warn(`⚠️ ステップ${stepIndex + 1}の画像生成に失敗`);
         }
       } catch (error) {
         console.error(`❌ ステップ${stepIndex + 1}の画像生成エラー:`, error);
@@ -116,8 +109,6 @@ export function useStepImageGeneration({
   // 指定したステップの画像を再生成する関数
   const regenerateStepImage = useCallback(
     async (stepIndex: number) => {
-      console.log(`🔄 ステップ${stepIndex + 1}の画像を再生成します...`);
-
       try {
         setLoading(true);
 
@@ -136,9 +127,7 @@ export function useStepImageGeneration({
             newArray[stepIndex] = currentImageUrl;
             return newArray;
           });
-          console.log(`✅ ステップ${stepIndex + 1}の画像再生成完了`);
         } else {
-          console.warn(`⚠️ ステップ${stepIndex + 1}の画像再生成に失敗`);
         }
       } catch (error) {
         console.error(`❌ ステップ${stepIndex + 1}の画像再生成エラー:`, error);

@@ -9,7 +9,13 @@ const LOADING_MESSAGES = [
   "手順を表示するボタンを押して下さい",
 ];
 
-export default function AnalysisLoadingWalkthrough() {
+interface AnalysisLoadingWalkthroughProps {
+  onSkip?: () => void;
+}
+
+export default function AnalysisLoadingWalkthrough({
+  onSkip,
+}: AnalysisLoadingWalkthroughProps = {}) {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(true);
   const [showSpinner, setShowSpinner] = useState(false);
@@ -48,17 +54,29 @@ export default function AnalysisLoadingWalkthrough() {
       <div className="absolute inset-0 bg-opacity-50"></div>
       <div className="relative text-center px-8">
         {!showSpinner ? (
-          <div
-            className={`transition-all duration-500 ${
-              isAnimating
-                ? "opacity-100 transform translate-y-0"
-                : "opacity-0 transform translate-y-4"
-            }`}
-          >
-            <p className="text-xl md:text-2xl text-white font-bold mb-8 leading-relaxed drop-shadow-lg">
-              {LOADING_MESSAGES[currentMessageIndex]}
-            </p>
-          </div>
+          <>
+            <div
+              className={`transition-all duration-500 ${
+                isAnimating
+                  ? "opacity-100 transform translate-y-0"
+                  : "opacity-0 transform translate-y-4"
+              }`}
+            >
+              <p className="text-xl md:text-2xl text-white font-bold mb-8 leading-relaxed drop-shadow-lg">
+                {LOADING_MESSAGES[currentMessageIndex]}
+              </p>
+            </div>
+
+            {/* 小さなskipボタン - アニメーション対象外で常に表示 */}
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="text-white text-opacity-50 hover:text-opacity-80 transition-colors text-sm underline mt-2"
+              >
+                skip
+              </button>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center space-y-6">
             {/* スピナー */}
@@ -69,6 +87,16 @@ export default function AnalysisLoadingWalkthrough() {
             <p className="text-sm text-white text-opacity-80 drop-shadow-lg">
               画像の複雑さと難易度を分析しています
             </p>
+
+            {/* スピナー表示時のskipボタン */}
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="text-white text-opacity-50 hover:text-opacity-80 transition-colors text-sm underline mt-4"
+              >
+                skip
+              </button>
+            )}
           </div>
         )}
       </div>

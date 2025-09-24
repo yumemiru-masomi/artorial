@@ -7,8 +7,6 @@ export function generateAbstractPromptByType(
   stepType: string,
   stepDescription: string
 ): string {
-  console.log(`🎨 抽象・その他プロンプト（stepType: ${stepType}）`);
-
   switch (stepType) {
     case "background":
       return generateAbstractBackgroundPrompt(stepDescription);
@@ -17,7 +15,6 @@ export function generateAbstractPromptByType(
     case "details":
       return generateAbstractDetailsPrompt(stepDescription);
     default:
-      console.log(`⚠️ 未知のstepType: ${stepType}, 汎用プロンプト使用`);
       return generateGenericAbstractPrompt(stepDescription);
   }
 }
@@ -80,15 +77,12 @@ function generateGenericAbstractPrompt(stepDescription: string): string {
 }
 
 export function generateAbstractPrompt(stepDescription: string): string {
-  console.log("🎨 抽象画・その他専用プロンプト");
-
   // 背景・ベース塗り
   if (
     stepDescription.includes("背景") ||
     stepDescription.includes("ベース") ||
     stepDescription.includes("基調")
   ) {
-    console.log("✅ 抽象画背景・ベース専用プロンプト");
     return `**【緊急重要】背景・ベース領域のみを塗り、詳細要素は絶対に塗らないでください！！！**
 
 🚨 **絶対禁止**: 詳細要素への色塗り
@@ -131,7 +125,6 @@ export function generateAbstractPrompt(stepDescription: string): string {
     stepDescription.includes("パターン") ||
     stepDescription.includes("実際の色で塗る")
   ) {
-    console.log("✅ 抽象画主要要素専用プロンプト");
     return `**【超重要】元画像の主要要素・形状のみを正確な色で塗ってください**
 
 【実行する手順】
@@ -163,7 +156,6 @@ export function generateAbstractPrompt(stepDescription: string): string {
     stepDescription.includes("装飾") ||
     stepDescription.includes("小要素")
   ) {
-    console.log("✅ 抽象画副次要素専用プロンプト");
     return `**【超重要】副次要素・詳細のみを塗り、主要要素と背景は白いまま残してください**
 
 【実行する手順】
@@ -195,7 +187,6 @@ export function generateAbstractPrompt(stepDescription: string): string {
     stepDescription.includes("効果") ||
     stepDescription.includes("ぼかし")
   ) {
-    console.log("✅ 抽象画色彩効果専用プロンプト");
     return `**【超重要】元画像のグラデーション・色彩効果のみを正確に再現してください**
 
 【実行する手順】
@@ -227,7 +218,6 @@ export function generateAbstractPrompt(stepDescription: string): string {
     stepDescription.includes("完成") ||
     stepDescription.includes("最終")
   ) {
-    console.log("✅ 抽象画仕上げ専用プロンプト");
     return `**【超重要】最小限の細部調整のみを行い、既存の色は絶対に変更しないでください**
 
 この作業は「抽象画の仕上げ・細部調整」の工程です：
@@ -256,7 +246,6 @@ export function generateAbstractPrompt(stepDescription: string): string {
 
   // その他の抽象画ステップ（汎用）
   else {
-    console.log("✅ 抽象画汎用プロンプト");
     return `**【最重要】元画像の色を詳細に観察し、100%忠実に再現して段階的に塗り分けてください**
 
 【実行する手順】

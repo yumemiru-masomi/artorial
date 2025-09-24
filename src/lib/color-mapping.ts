@@ -153,35 +153,23 @@ export function getColorsForStep(
 
   // Geminiが分類したstepColorsを優先的に使用
   if (stepColors) {
-    console.log(`🎨 Geminiが分類した${stepType}用の色を使用`);
-    console.log(`🔍 stepColors.background:`, stepColors.background);
-    console.log(`🔍 stepColors.main_part:`, stepColors.main_part);
-    console.log(`🔍 stepColors.details:`, stepColors.details);
-
     switch (stepType) {
       case "background":
         if (stepColors.background.length > 0) {
-          console.log(
-            `✅ 背景色: ${stepColors.background.length}色`,
-            stepColors.background
-          );
           return stepColors.background;
         }
-        console.log(`⚠️ 背景色が空です`);
         break;
       case "main_part":
       case "skin":
       case "clothing":
       case "hair":
         if (stepColors.main_part.length > 0) {
-          console.log(`✅ 主要部分色: ${stepColors.main_part.length}色`);
           return stepColors.main_part;
         }
         break;
       case "details":
       case "accessories":
         if (stepColors.details.length > 0) {
-          console.log(`✅ 細部色: ${stepColors.details.length}色`);
           return stepColors.details;
         }
         break;
@@ -189,7 +177,6 @@ export function getColorsForStep(
   }
 
   // フォールバック: 従来のロジック
-  console.log(`⚠️ Gemini分類が無効、従来ロジックを使用: ${stepType}`);
   const targetCategories = STEP_COLOR_MAPPING[stepType] || ["other"];
   const filteredColors: ColorInfo[] = [];
 

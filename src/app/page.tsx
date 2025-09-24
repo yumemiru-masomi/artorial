@@ -17,8 +17,6 @@ export default function Home() {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
   );
-  const [textureStrength] = useState<number>(40);
-  const [currentStep] = useState<"upload" | "analysis">("upload");
   const [showMaterialsModal, setShowMaterialsModal] = useState(false);
 
   const handleImageSelect = async (file: File) => {
@@ -43,11 +41,7 @@ export default function Home() {
         const { saveImageAnalysisSession } = await import(
           "@/lib/session-storage"
         );
-        await saveImageAnalysisSession(
-          selectedFile,
-          selectedMaterial,
-          textureStrength
-        );
+        await saveImageAnalysisSession(selectedFile, selectedMaterial);
         router.push("/analysis");
       } catch (error) {
         console.error("Failed to save session data:", error);
@@ -87,38 +81,36 @@ export default function Home() {
 
         {/* メインコンテンツ */}
         <div className="parchment-card rounded-lg p-8">
-          {currentStep === "upload" && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                描きたい画像を選択してください。
-              </h2>
-              <p className="text-sm text-black text-center mb-4">
-                人物・キャラクター・動物画を推奨します
-              </p>
-              <ImageUpload
-                onImageSelect={handleImageSelect}
-                onImageRemove={handleImageRemove}
-                isProcessing={isProcessing}
-                error={error || undefined}
-              />
-              {selectedFile && (
-                <div className="mt-6 flex justify-center space-x-4">
-                  <button
-                    onClick={handleImageRemove}
-                    className="px-6 py-3 bg-white bg-opacity-20 text-gray-400 rounded-lg font-medium hover:bg-white hover:bg-opacity-30 transition-colors backdrop-blur-sm border border-white border-opacity-30"
-                  >
-                    キャンセル
-                  </button>
-                  <button
-                    onClick={handleStartAnalysis}
-                    className="px-8 py-3 bg-sage-light text-white rounded-lg font-medium hover:bg-sage-light transition-colors"
-                  >
-                    解析開始
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              描きたい画像を選択してください。
+            </h2>
+            <p className="text-sm text-black text-center mb-4">
+              人物・キャラクター・動物画を推奨します
+            </p>
+            <ImageUpload
+              onImageSelect={handleImageSelect}
+              onImageRemove={handleImageRemove}
+              isProcessing={isProcessing}
+              error={error || undefined}
+            />
+            {selectedFile && (
+              <div className="mt-6 flex justify-center space-x-4">
+                <button
+                  onClick={handleImageRemove}
+                  className="px-6 py-3 bg-white bg-opacity-20 text-gray-400 rounded-lg font-medium hover:bg-white hover:bg-opacity-30 transition-colors backdrop-blur-sm border border-white border-opacity-30"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleStartAnalysis}
+                  className="px-8 py-3 bg-sage-light text-white rounded-lg font-medium hover:bg-sage-light transition-colors"
+                >
+                  解析開始
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

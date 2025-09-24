@@ -203,15 +203,6 @@ export class GeminiService {
     mimeType: string = "image/jpeg"
   ): Promise<ImageAnalysisResponse> {
     try {
-      console.log("🚀 Gemini API呼び出し開始");
-      console.log(
-        "🔑 APIキー設定:",
-        process.env.GEMINI_API_KEY ? "✅ 設定済み" : "❌ 未設定"
-      );
-      console.log("📊 画像サイズ:", base64Image.length, "文字");
-      console.log("🎨 画材:", material);
-      console.log("📄 MIMEタイプ:", mimeType);
-
       // 日本語対応・動的値生成・ステップ別色分類プロンプト
       const prompt = `この画像を詳細に分析して、以下のJSON形式で日本語で回答してください：
 
@@ -244,8 +235,6 @@ export class GeminiService {
 - 実際の画像内容を正確に反映した動的な値を設定
 - JSONのみ回答（説明文不要）`;
 
-      console.log("📤 API呼び出し実行中...");
-
       const result = await this.model.generateContent([
         {
           inlineData: {
@@ -256,16 +245,8 @@ export class GeminiService {
         prompt,
       ]);
 
-      console.log("📥 API呼び出し完了");
-
       const response = await result.response;
-      console.log("📊 トークン使用量:", response.usageMetadata);
-      console.log("🏁 終了理由:", response.candidates?.[0]?.finishReason);
-
       const text = response.text();
-      console.log("📝 text length:", text?.length || 0);
-
-      console.log("Gemini API raw response:", text);
 
       // MAX_TOKENSエラーの場合は即座にフォールバック
       if (response.candidates?.[0]?.finishReason === "MAX_TOKENS") {
@@ -290,9 +271,6 @@ export class GeminiService {
       // JSONレスポンスをパース（強化された複数パターン）
       let parsed = null;
 
-      console.log("🔍 JSON解析開始 - レスポンス長:", text.length);
-      console.log("📄 レスポンス内容:", text);
-
       // パターン1: 最もシンプルなJSON抽出（新フィールド対応）
       const simpleJsonMatch = text.match(
         /\{[^{}]*"difficulty"[^{}]*"complexity"[^{}]*"estimatedTime"[^{}]*"reasoning"[^{}]*"category"[^{}]*"categoryDescription"[^{}]*"dominantColors"[^{}]*\}/
@@ -300,10 +278,7 @@ export class GeminiService {
       if (simpleJsonMatch) {
         try {
           parsed = JSON.parse(simpleJsonMatch[0]);
-          console.log("✅ パターン1成功（シンプルJSON）:", parsed);
-        } catch (e) {
-          console.warn("❌ パターン1失敗:", e);
-        }
+        } catch (e) {}
       }
 
       // パターン2: コードブロック内のJSON
@@ -314,16 +289,12 @@ export class GeminiService {
         if (codeBlockMatch) {
           try {
             parsed = JSON.parse(codeBlockMatch[1]);
-            console.log("✅ パターン2成功（コードブロック）:", parsed);
-          } catch (e) {
-            console.warn("❌ パターン2失敗:", e);
-          }
+          } catch (e) {}
         }
       }
 
       // パターン3: 強制的なJSON構築（最後の手段）
       if (!parsed) {
-        console.log("🔧 パターン3: 強制JSON構築を試行");
         const difficultyMatch = text.match(
           /"difficulty"\s*:\s*"(beginner|intermediate|advanced)"/
         );
@@ -338,19 +309,10 @@ export class GeminiService {
             estimatedTime: parseInt(timeMatch[1]),
             reasoning: reasoningMatch?.[1] || "画像の分析が完了しました。",
           };
-          console.log("✅ パターン3成功（強制構築）:", parsed);
         }
       }
 
       if (!parsed) {
-        console.error("🚨 全てのJSON解析パターンが失敗");
-        console.error("📄 元のレスポンス:", text);
-        console.error("📊 レスポンス詳細:");
-        console.error("  - 長さ:", text.length);
-        console.error("  - {を含む:", text.includes("{"));
-        console.error("  - }を含む:", text.includes("}"));
-        console.error("  - difficultyを含む:", text.includes("difficulty"));
-
         // フォールバック: 実際の画像から色を抽出
         const actualColors = await this.extractActualColors(base64Image);
 
@@ -378,12 +340,6 @@ export class GeminiService {
         "architecture",
         "other",
       ];
-
-      console.log("🔍 パース結果の詳細:");
-      console.log("  - difficulty:", parsed.difficulty);
-      console.log("  - complexity:", parsed.complexity);
-      console.log("  - estimatedTime:", parsed.estimatedTime);
-      console.log("  - stepColors:", parsed.stepColors);
 
       const validatedData = {
         difficulty: ["beginner", "intermediate", "advanced"].includes(
@@ -419,7 +375,6 @@ export class GeminiService {
         stepColors: this.validateStepColors(parsed.stepColors),
       };
 
-      console.log("✅ 最終的な分析結果:", validatedData);
       return validatedData;
     } catch (error) {
       console.error("🚨 Gemini API error:", error);
@@ -455,7 +410,6 @@ export class GeminiService {
    */
   private validateStepColors(stepColors: unknown): StepColors | undefined {
     if (!stepColors || typeof stepColors !== "object") {
-      console.log("⚠️ stepColors が無効、スキップ");
       return undefined;
     }
 
@@ -492,12 +446,6 @@ export class GeminiService {
       details: validateColorArray(stepColorsObj.details),
     };
 
-    console.log("✅ ステップ別色情報を検証:", {
-      background: result.background.length,
-      main_part: result.main_part.length,
-      details: result.details.length,
-    });
-
     return result;
   }
 
@@ -510,8 +458,6 @@ export class GeminiService {
     mimeType: string = "image/jpeg"
   ): Promise<string> {
     try {
-      console.log("🚀 Gemini テキスト生成開始");
-
       const result = await this.model.generateContent([
         {
           inlineData: {

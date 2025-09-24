@@ -7,8 +7,6 @@ export function generateStillLifePromptByType(
   stepType: string,
   stepDescription: string
 ): string {
-  console.log(`🏺 静物・建築画プロンプト（stepType: ${stepType}）`);
-
   switch (stepType) {
     case "background":
       return generateStillLifeBackgroundPrompt(stepDescription);
@@ -17,7 +15,6 @@ export function generateStillLifePromptByType(
     case "details":
       return generateStillLifeDetailsPrompt(stepDescription);
     default:
-      console.log(`⚠️ 未知のstepType: ${stepType}, 汎用プロンプト使用`);
       return generateGenericStillLifePrompt(stepDescription);
   }
 }
@@ -80,11 +77,8 @@ function generateGenericStillLifePrompt(stepDescription: string): string {
 }
 
 export function generateStillLifePrompt(stepDescription: string): string {
-  console.log("🏺 静物・建物画専用プロンプト");
-
   // 背景塗り
   if (stepDescription.includes("背景") || stepDescription.includes("輪郭外")) {
-    console.log("✅ 静物・建物背景専用プロンプト");
     return `**【緊急重要】背景のみを塗り、物体・建物部分は絶対に塗らないでください！！！**
 
 🚨 **絶対禁止**: 物体・建物部分への色塗り
@@ -93,28 +87,30 @@ export function generateStillLifePrompt(stepDescription: string): string {
 【実行する手順】
 "${stepDescription}"
 
+**【背景のみ塗る厳格なルール - 最重要】**
+1. **物体・建物の輪郭線を境界として認識する**
+2. **輪郭線の外側（背景）のみを塗る**
+3. **輪郭線の内側（物体・建物）は絶対に塗らない**
+4. **黒い輪郭線は一切変更・塗りつぶししない**
+
 **【背景色の指定 - 最重要】**
 - ステップ説明に色名が含まれている場合、その色で背景を塗る
 - 色名が明確でない場合は、元画像の背景色を観察して同じ色で塗る
 - 背景は必ず何らかの色で塗る（白いまま残さない）
 
-**【背景のみ塗るルール】**
-- **物体・建物の輪郭外の背景のみを塗る**
-- **全ての物体・建物は絶対に塗らない**：白黒線画のまま保持
-- **黒い輪郭線は一切変更しない**：塗りつぶし厳禁
-- **背景全体を均一に塗る**
-
 **【具体的な塗り分け指示】**
-- ✅ **塗ってよいもの**：
-  - 物体・建物の輪郭外の背景
+- ✅ **塗ってよいもの（背景のみ）**：
+  - 物体・建物の輪郭線の外側の領域
   - 壁や床の背景部分
   - 空や遠景（建物画の場合）
-- ❌ **絶対に塗らないもの**：
-  - 全ての物体・建物
-  - 家具や装飾品
-  - 構造物の詳細
+  - 物体の周囲の環境
+- ❌ **絶対に塗らないもの（物体・建物）**：
+  - 全ての物体・建物の内部
+  - 家具や装飾品の内部
+  - 構造物の詳細部分
+  - 輪郭線で囲まれた全ての領域
 
-**重要：物体・建物の輪郭線を境界として、外側（背景）のみを塗り、内側（物体・建物）は白黒線画のまま保持してください。この段階では物体・建物への色塗りは行いません。**`;
+**重要：物体・建物の輪郭線を境界として、外側（背景）のみを塗り、内側（物体・建物）は白黒線画のまま保持してください。この段階では物体・建物への色塗りは絶対に行いません。**`;
   }
 
   // 主要部分塗り・主要物体・建物塗り
@@ -127,7 +123,6 @@ export function generateStillLifePrompt(stepDescription: string): string {
     stepDescription.includes("中心") ||
     stepDescription.includes("実際の色で塗る")
   ) {
-    console.log("✅ 静物・建物主要要素専用プロンプト");
     return `**【超重要】主要な物体・建物のみを塗り、副次要素は白いまま残してください**
 
 【実行する手順】
@@ -160,7 +155,6 @@ export function generateStillLifePrompt(stepDescription: string): string {
     stepDescription.includes("小物") ||
     stepDescription.includes("詳細")
   ) {
-    console.log("✅ 静物・建物副次要素専用プロンプト");
     return `**【超重要】副次物体・装飾・小物のみを塗り、主要要素と背景は白いまま残してください**
 
 【実行する手順】
@@ -194,7 +188,6 @@ export function generateStillLifePrompt(stepDescription: string): string {
     stepDescription.includes("壁") ||
     stepDescription.includes("屋根")
   ) {
-    console.log("✅ 建物構造専用プロンプト");
     return `**【超重要】建物の構造要素のみを塗り、装飾や背景は白いまま残してください**
 
 【実行する手順】
@@ -228,7 +221,6 @@ export function generateStillLifePrompt(stepDescription: string): string {
     stepDescription.includes("完成") ||
     stepDescription.includes("最終")
   ) {
-    console.log("✅ 静物・建物仕上げ専用プロンプト");
     return `**【超重要】最小限の細部描き込みのみを行い、既存の色は絶対に変更しないでください**
 
 この作業は「静物・建物画の仕上げ・細部描き込み」の工程です：
@@ -257,7 +249,6 @@ export function generateStillLifePrompt(stepDescription: string): string {
 
   // その他の静物・建物ステップ（汎用）
   else {
-    console.log("✅ 静物・建物汎用プロンプト");
     return `**【最重要】元画像の色を詳細に観察し、100%忠実に再現して段階的に塗り分けてください**
 
 【実行する手順】

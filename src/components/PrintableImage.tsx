@@ -36,8 +36,6 @@ const PrintableImage: React.FC<PrintableImageProps> = ({
             src={imageUrl}
             alt={`ステップ${stepNumber}: ${stepTitle} - 下書き画像`}
             className="max-w-full max-h-[70vh] object-contain print-image"
-            onLoad={() => console.log("印刷用画像読み込み完了")}
-            onError={() => console.error("印刷用画像読み込みエラー")}
           />
         </div>
       </div>

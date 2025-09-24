@@ -4,12 +4,17 @@ import { useState, useEffect } from "react";
 
 const LOADING_MESSAGES = [
   "これから絵を描く手順をお伝えします",
-  "上手く書けなくても大丈夫です",
   "あなたが描きたい絵で、あなたの塗りたい色で",
-  "リラックスして書いていきましょう",
+  "リラックスして描いていきましょう",
 ];
 
-export default function StepGenerationLoadingWalkthrough() {
+interface StepGenerationLoadingWalkthroughProps {
+  onSkip?: () => void;
+}
+
+export default function StepGenerationLoadingWalkthrough({
+  onSkip,
+}: StepGenerationLoadingWalkthroughProps = {}) {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(true);
   const [showSpinner, setShowSpinner] = useState(false);
@@ -48,17 +53,29 @@ export default function StepGenerationLoadingWalkthrough() {
       <div className="absolute inset-0 bg-opacity-50"></div>
       <div className="relative text-center px-8">
         {!showSpinner ? (
-          <div
-            className={`transition-all duration-500 ${
-              isAnimating
-                ? "opacity-100 transform translate-y-0"
-                : "opacity-0 transform translate-y-4"
-            }`}
-          >
-            <p className="text-xl md:text-2xl text-white font-bold mb-8 leading-relaxed drop-shadow-lg">
-              {LOADING_MESSAGES[currentMessageIndex]}
-            </p>
-          </div>
+          <>
+            <div
+              className={`transition-all duration-500 ${
+                isAnimating
+                  ? "opacity-100 transform translate-y-0"
+                  : "opacity-0 transform translate-y-4"
+              }`}
+            >
+              <p className="text-xl md:text-2xl text-white font-bold mb-8 leading-relaxed drop-shadow-lg">
+                {LOADING_MESSAGES[currentMessageIndex]}
+              </p>
+            </div>
+
+            {/* 小さなskipボタン - アニメーション対象外で常に表示 */}
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="text-white text-opacity-50 hover:text-opacity-80 transition-colors text-sm underline mt-2"
+              >
+                skip
+              </button>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center space-y-6">
             {/* スピナー */}
@@ -69,6 +86,16 @@ export default function StepGenerationLoadingWalkthrough() {
             <p className="text-sm text-white text-opacity-80 drop-shadow-lg">
               どんな手順にするか考えますので、少々お待ちください...
             </p>
+
+            {/* スピナー表示時のskipボタン */}
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="text-white text-opacity-50 hover:text-opacity-80 transition-colors text-sm underline mt-4"
+              >
+                skip
+              </button>
+            )}
           </div>
         )}
       </div>

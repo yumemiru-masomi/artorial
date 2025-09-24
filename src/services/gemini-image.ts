@@ -51,9 +51,6 @@ export class GeminiImageService {
    */
   private async optimizeImage(imageBuffer: Buffer): Promise<Buffer> {
     try {
-      console.log("🔧 画像最適化を開始...");
-      const originalSize = imageBuffer.length;
-
       const optimized = await sharp(imageBuffer)
         .resize(1024, 1024, {
           fit: "inside",
@@ -62,16 +59,8 @@ export class GeminiImageService {
         .jpeg({ quality: 85 })
         .toBuffer();
 
-      const optimizedSize = optimized.length;
-      console.log(
-        `📊 画像最適化完了: ${originalSize} → ${optimizedSize} bytes (${Math.round(
-          (1 - optimizedSize / originalSize) * 100
-        )}% 削減)`
-      );
-
       return optimized;
     } catch (error) {
-      console.warn("⚠️ 画像最適化に失敗、元画像を使用:", error);
       return imageBuffer;
     }
   }
@@ -81,8 +70,6 @@ export class GeminiImageService {
    */
   private async generateLineArtFallback(imageBuffer: Buffer): Promise<Buffer> {
     try {
-      console.log("🎨 Sharp.jsで線画生成を開始...");
-
       const lineArt = await sharp(imageBuffer)
         .resize(800, 600, { fit: "inside", withoutEnlargement: true })
         .grayscale()
@@ -94,7 +81,6 @@ export class GeminiImageService {
         .png() // PNG形式で出力
         .toBuffer();
 
-      console.log("✅ Sharp.jsによる線画生成完了");
       return lineArt;
     } catch (error) {
       console.error("❌ Sharp.js線画生成エラー:", error);
@@ -113,12 +99,6 @@ export class GeminiImageService {
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒に延長
 
     try {
-      console.log("🚀 Gemini 2.5 Flash Image Previewで画像生成を開始...");
-      console.log("- Model:", "gemini-2.5-flash-image-preview");
-      console.log("- Prompt length:", prompt.length);
-      console.log("- Image size:", base64Image.length, "bytes");
-      console.log("- Timeout:", "60秒");
-
       // Gemini 2.5 Flash Image Previewで画像生成を実行
       if (!this.model) {
         throw new Error("Model is not initialized");
@@ -138,14 +118,6 @@ export class GeminiImageService {
 
       const response = result.response;
 
-      // デバッグ用: レスポンス詳細をログ出力
-      console.log("Gemini API Response:");
-      console.log("- Candidates count:", response.candidates?.length || 0);
-      console.log(
-        "- First candidate parts:",
-        response.candidates?.[0]?.content?.parts?.length || 0
-      );
-
       // レスポンスから生成された画像を抽出
       const candidates = response.candidates;
       if (candidates && candidates.length > 0 && candidates[0].content) {
@@ -153,19 +125,12 @@ export class GeminiImageService {
         if (parts && parts.length > 0) {
           for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
-            console.log(`- Part ${i}:`, {
-              hasInlineData: !!part.inlineData,
-              mimeType: part.inlineData?.mimeType,
-              hasText: !!part.text,
-              textLength: part.text?.length || 0,
-            });
 
             // 生成された画像データを取得
             if (
               part.inlineData &&
               part.inlineData.mimeType?.startsWith("image/")
             ) {
-              console.log("✅ 生成された画像データを発見！");
               return Buffer.from(part.inlineData.data, "base64");
             }
           }
@@ -173,27 +138,13 @@ export class GeminiImageService {
       }
 
       // 画像が生成されなかった場合のフォールバック
-      console.warn("Geminiで画像が生成されませんでした。元画像を返します。");
       return Buffer.from(base64Image, "base64");
     } catch (error) {
       clearTimeout(timeoutId);
 
       if (error instanceof Error && error.name === "AbortError") {
-        console.error("⏰ Gemini APIタイムアウト（60秒超過）");
         throw new Error("TIMEOUT");
       }
-
-      // より詳細なエラー情報をログ出力
-      console.error("❌ Gemini画像生成エラー:", {
-        name: error instanceof Error ? error.name : "Unknown",
-        message: error instanceof Error ? error.message : "Unknown error",
-        promptLength: prompt.length,
-        imageSize: base64Image.length,
-        stack:
-          error instanceof Error
-            ? error.stack?.split("\n").slice(0, 5)
-            : undefined,
-      });
 
       // APIエラーの種類に応じた処理
       if (error instanceof Error) {
@@ -201,13 +152,11 @@ export class GeminiImageService {
           error.message.includes("quota") ||
           error.message.includes("limit")
         ) {
-          console.error("💰 API利用制限に達しました");
           throw new Error("QUOTA_EXCEEDED");
         } else if (
           error.message.includes("invalid") ||
           error.message.includes("format")
         ) {
-          console.error("📄 画像形式エラー");
           throw new Error("INVALID_FORMAT");
         }
       }

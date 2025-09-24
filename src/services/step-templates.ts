@@ -13,7 +13,9 @@ const CHARACTER_STEPS: GeneratedStep[] = [
     description:
       "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
     stepType: "lineart",
-    tips: ["元画像の構図を正確に保つ", "線の太さを均一にする"],
+    tips: [
+      "下書きを印刷し、キャンバスのトレーシングペーパーを敷いて、その上に印刷した用紙を置いて鉛筆でなぞる",
+    ],
     estimatedDuration: 15,
     techniques: ["線画", "輪郭描写"],
   },
@@ -57,7 +59,7 @@ const LANDSCAPE_STEPS: GeneratedStep[] = [
     description:
       "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
     stepType: "lineart",
-    tips: ["元画像の構図を正確に保つ", "線の太さを均一にする"],
+    tips: ["線の太さを均一にする"],
     estimatedDuration: 15,
     techniques: ["線画", "輪郭描写"],
   },
@@ -100,7 +102,7 @@ const STILL_LIFE_STEPS: GeneratedStep[] = [
     description:
       "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
     stepType: "lineart",
-    tips: ["元画像の構図を正確に保つ", "線の太さを均一にする"],
+    tips: ["線の太さを均一にする"],
     estimatedDuration: 15,
     techniques: ["線画", "輪郭描写"],
   },
@@ -142,7 +144,7 @@ const ABSTRACT_STEPS: GeneratedStep[] = [
     description:
       "アップロード画像の形状と比率を保持したまま、白い背景に黒い線だけの線画に変換します。",
     stepType: "lineart",
-    tips: ["元画像の構図を正確に保つ", "線の太さを均一にする"],
+    tips: ["線の太さを均一にする"],
     estimatedDuration: 15,
     techniques: ["線画", "輪郭描写"],
   },
@@ -180,28 +182,22 @@ const ABSTRACT_STEPS: GeneratedStep[] = [
  * カテゴリに基づいてステップテンプレートを取得
  */
 export function getStepTemplates(category: ImageCategory): GeneratedStep[] {
-  console.log(`🎯 ステップテンプレートを取得: ${category}`);
-
   switch (category) {
     case "portrait":
     case "character":
     case "animal":
-      console.log("✅ キャラクター用固定ステップを使用");
       return CHARACTER_STEPS;
 
     case "landscape":
-      console.log("✅ 風景画用固定ステップを使用");
       return LANDSCAPE_STEPS;
 
     case "still_life":
     case "architecture":
-      console.log("✅ 静物画用固定ステップを使用");
       return STILL_LIFE_STEPS;
 
     case "abstract":
     case "other":
     default:
-      console.log("✅ 抽象画・その他用固定ステップを使用");
       return ABSTRACT_STEPS;
   }
 }
